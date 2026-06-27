@@ -9,7 +9,10 @@ export type ThemePref = 'light' | 'dark' | 'system'
 export interface Settings {
   /** Colour theme. 'system' follows the OS light/dark setting. */
   theme: ThemePref
-  /** Optional display name so the assistant can address the user by name. */
+  /** Optional name for the assistant itself ("my name") — what it calls itself. */
+  aiName: string
+  /** Optional display name for the user ("your name") so the assistant can
+   *  address the user by name. */
   userName: string
   /**
    * Opt-in online web search. OFF by default — the app is offline-first, so
@@ -23,6 +26,7 @@ const KEY = 'universal-ai:settings'
 
 const DEFAULTS: Settings = {
   theme: 'system',
+  aiName: '',
   userName: '',
   webSearch: false,
 }
@@ -85,6 +89,10 @@ export function applyTheme(pref: ThemePref): void {
 
 export function setTheme(theme: ThemePref): void {
   settings.update((s) => ({ ...s, theme }))
+}
+
+export function setAiName(aiName: string): void {
+  settings.update((s) => ({ ...s, aiName }))
 }
 
 export function setUserName(userName: string): void {

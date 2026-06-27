@@ -8,7 +8,7 @@
     loadModel,
     online,
   } from '../stores'
-  import { settings, setTheme, setUserName, setWebSearch, type ThemePref } from '../settings'
+  import { settings, setTheme, setAiName, setUserName, setWebSearch, type ThemePref } from '../settings'
 
   let models = $derived(modelsFor($backend))
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
@@ -70,9 +70,20 @@
 
   <!-- Personalisation -->
   <section>
-    <h3>Your name</h3>
-    <p class="hint">Optional — the assistant will address you by name in chat.</p>
+    <h3>Names</h3>
+    <p class="hint">Optional — set what the assistant calls itself and how it addresses you in chat.</p>
+    <label class="sublabel" for="ai-name">My name <span class="muted">(the assistant)</span></label>
     <input
+      id="ai-name"
+      type="text"
+      placeholder="e.g. Universal AI"
+      maxlength="40"
+      value={$settings.aiName}
+      oninput={(e) => setAiName((e.currentTarget as HTMLInputElement).value)}
+    />
+    <label class="sublabel" for="user-name">Your name <span class="muted">(you)</span></label>
+    <input
+      id="user-name"
       type="text"
       placeholder="e.g. Alex"
       maxlength="40"
@@ -125,6 +136,8 @@
     gap: 0.5rem;
   }
   .hint { margin: 0; font-size: 0.82rem; color: var(--text-dim); line-height: 1.45; }
+  .sublabel { font-size: 0.8rem; font-weight: 600; color: var(--text); margin-top: 0.2rem; }
+  .sublabel .muted { font-weight: 400; color: var(--text-dim); }
   .tag {
     font-size: 0.68rem;
     font-weight: 700;

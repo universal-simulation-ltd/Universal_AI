@@ -266,6 +266,11 @@ export async function send(userText: string): Promise<void> {
     // RAG: retrieve from enabled KBs (+ opt-in web search) and ground the prompt.
     const cfg = get(settings)
     let system = SYSTEM_BASE
+    if (cfg.aiName.trim()) {
+      system +=
+        `\n\nYour name is ${cfg.aiName.trim()}. When asked your name or ` +
+        `introducing yourself, say you are ${cfg.aiName.trim()}.`
+    }
     if (cfg.userName.trim()) {
       system +=
         `\n\nThe user's name is ${cfg.userName.trim()}. Address them by name ` +
