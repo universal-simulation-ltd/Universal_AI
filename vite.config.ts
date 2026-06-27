@@ -60,6 +60,18 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          {
+            // Pre-built knowledge packs (Simple Wikipedia .bin + .json manifest).
+            // Too large to precache; cached on download so they stay offline.
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && url.pathname.startsWith('/knowledge/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'knowledge-packs',
+              expiration: { maxEntries: 6, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       devOptions: { enabled: false },

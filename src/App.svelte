@@ -3,13 +3,21 @@
   import ModelBar from './lib/components/ModelBar.svelte'
   import ChatView from './lib/components/ChatView.svelte'
   import KnowledgeView from './lib/components/KnowledgeView.svelte'
-  import { refreshKBs, detectCapabilities, kbs } from './lib/stores'
+  import {
+    refreshKBs,
+    detectCapabilities,
+    seedBuiltinKB,
+    loadPackIntoMemory,
+    kbs,
+  } from './lib/stores'
 
   let tab: 'chat' | 'knowledge' = $state('chat')
 
-  onMount(() => {
-    refreshKBs()
+  onMount(async () => {
+    await refreshKBs()
     detectCapabilities()
+    await seedBuiltinKB()
+    loadPackIntoMemory() // best-effort warm if previously installed
   })
 
   let enabledCount = $derived($kbs.filter((k) => k.enabled).length)

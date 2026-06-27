@@ -5,3 +5,7 @@ dev-dist
 .claude/settings.local.json
 .DS_Store
 .vite
+
+# Generated knowledge packs — not committed until the full pack is built and
+# intentionally added via Git LFS. Sample/dev packs stay local-only.
+public/knowledge/

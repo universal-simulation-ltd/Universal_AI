@@ -1,12 +1,40 @@
 <script lang="ts">
-  import { ingestDocument } from '../rag'
-  import { kbs, refreshKBs, toggleKB, removeKB } from '../stores'
+  import { onMount } from 'svelte'
+  import { ingestDocument, fetchManifest } from '../rag'
+  import {
+    kbs,
+    refreshKBs,
+    toggleKB,
+    removeKB,
+    BUILTIN_SIMPLEWIKI_ID,
+    builtinInstalled,
+    builtinDownloadProgress,
+    installBuiltinPack,
+  } from '../stores'
 
   let name = $state('')
   let text = $state('')
   let busy = $state(false)
   let progress = $state<{ done: number; total: number } | null>(null)
   let error = $state<string | null>(null)
+
+  let packMB = $state<number | null>(null)
+  let packError = $state<string | null>(null)
+
+  onMount(() => {
+    fetchManifest()
+      .then((m) => (packMB = m.approxMB))
+      .catch(() => {}) // pack not built/available — card just won't show a size
+  })
+
+  async function downloadPack() {
+    packError = null
+    try {
+      await installBuiltinPack()
+    } catch (err) {
+      packError = err instanceof Error ? err.message : String(err)
+    }
+  }
 
   async function onFiles(e: Event) {
     const input = e.target as HTMLInputElement
@@ -82,17 +110,53 @@
       <p class="muted">None yet. Add some above to ground answers.</p>
     {:else}
       {#each $kbs as kb (kb.id)}
-        <div class="kb" class:on={kb.enabled}>
-          <label class="toggle">
-            <input type="checkbox" checked={kb.enabled} onchange={() => toggleKB(kb)} />
-            <span></span>
-          </label>
-          <div class="meta">
-            <div class="kbname">{kb.name}</div>
-            <div class="muted small">{kb.chunkCount} chunks</div>
+        {#if kb.id === BUILTIN_SIMPLEWIKI_ID}
+          <div class="kb builtin" class:on={kb.enabled && $builtinInstalled}>
+            {#if $builtinInstalled && $builtinDownloadProgress === null}
+              <label class="toggle">
+                <input type="checkbox" checked={kb.enabled} onchange={() => toggleKB(kb)} />
+                <span></span>
+              </label>
+            {/if}
+            <div class="meta">
+              <div class="kbname">📚 {kb.name}</div>
+              {#if $builtinDownloadProgress !== null}
+                <div class="muted small">
+                  Downloading… {Math.round($builtinDownloadProgress * 100)}%
+                </div>
+                <progress max="1" value={$builtinDownloadProgress}></progress>
+              {:else if $builtinInstalled}
+                <div class="muted small">{kb.chunkCount.toLocaleString()} articles · on-device</div>
+              {:else}
+                <div class="muted small">
+                  {kb.chunkCount.toLocaleString()} articles · cite general knowledge offline
+                </div>
+              {/if}
+            </div>
+            {#if $builtinDownloadProgress !== null}
+              <!-- controls hidden while downloading -->
+            {:else if $builtinInstalled}
+              <button class="del" title="Remove download" onclick={() => removeKB(kb)}>🗑</button>
+            {:else}
+              <button class="primary dl" onclick={downloadPack}>
+                Download{#if packMB}&nbsp;(~{packMB}&nbsp;MB){/if}
+              </button>
+            {/if}
           </div>
-          <button class="del" title="Delete" onclick={() => removeKB(kb)}>🗑</button>
-        </div>
+          {#if packError}<p class="err">{packError}</p>{/if}
+        {:else}
+          <div class="kb" class:on={kb.enabled}>
+            <label class="toggle">
+              <input type="checkbox" checked={kb.enabled} onchange={() => toggleKB(kb)} />
+              <span></span>
+            </label>
+            <div class="meta">
+              <div class="kbname">{kb.name}</div>
+              <div class="muted small">{kb.chunkCount} chunks</div>
+            </div>
+            <button class="del" title="Delete" onclick={() => removeKB(kb)}>🗑</button>
+          </div>
+        {/if}
       {/each}
     {/if}
   </section>
@@ -130,6 +194,9 @@
     opacity: 0.6;
   }
   .kb.on { opacity: 1; border-color: var(--accent); }
+  .kb.builtin { opacity: 1; }
+  .dl { white-space: nowrap; flex: 0 0 auto; padding: 0.45rem 0.7rem; }
+  .meta progress { width: 100%; height: 6px; margin-top: 0.35rem; }
   .meta { flex: 1; min-width: 0; }
   .kbname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .del { background: transparent; border-color: transparent; padding: 0.3rem 0.4rem; }
