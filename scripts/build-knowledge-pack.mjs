@@ -15,12 +15,13 @@
 //                   (wikimedia/wikipedia, config 20231101.simple). No parquet
 //                   tooling needed and a much higher rate limit than the wiki
 //                   API — this is the recommended path for the full build.
+//   --source=parquet --input=FILE
+//                   read a local HF parquet shard directly (title/text columns)
+//                   via hyparquet — no API calls, immune to rate limits, the
+//                   most reliable path for a large (25k+) build. Download once:
+//                     curl -sL "https://huggingface.co/datasets/wikimedia/wikipedia/resolve/refs%2Fconvert%2Fparquet/20231101.simple/train/0000.parquet" -o simplewiki.parquet
 //   --source=jsonl --input=FILE
-//                   one {"title","text"} JSON object per line. Alternative full
-//                   build: convert the HF parquet dump to jsonl, e.g. with duckdb:
-//                     duckdb -c "COPY (SELECT title, text FROM
-//                       'https://huggingface.co/datasets/wikimedia/wikipedia/resolve/main/20231101.simple/train-00000-of-00001.parquet')
-//                       TO 'simple.jsonl' (FORMAT JSON);"
+//                   one {"title","text"} JSON object per line.
 //
 // Realism: Node embeds on CPU (onnxruntime), ~30–120 texts/sec. A ~25k pack
 // takes a few minutes; --limit=300 finishes in seconds for end-to-end wiring.
@@ -146,6 +147,38 @@ async function fromHf(limit) {
   return items
 }
 
+async function fromParquet(path, limit) {
+  // Read title/text columns directly from a local parquet shard, in row chunks
+  // to keep memory flat (the `text` column holds full articles).
+  const { parquetReadObjects, asyncBufferFromFile } = await import('hyparquet')
+  const { compressors } = await import('hyparquet-compressors')
+  const file = await asyncBufferFromFile(path)
+  const items = []
+  const CHUNK = 5000
+  let start = 0
+  for (;;) {
+    if (items.length >= limit) break
+    const rows = await parquetReadObjects({
+      file,
+      columns: ['title', 'text'],
+      compressors,
+      rowStart: start,
+      rowEnd: start + CHUNK,
+    })
+    if (rows.length === 0) break // past the end
+    for (const r of rows) {
+      const intro = cleanIntro(r.text ?? '')
+      if (!isUsable(r.title ?? '', intro)) continue
+      items.push({ title: String(r.title), text: intro })
+      if (items.length >= limit) break
+    }
+    start += CHUNK
+    process.stdout.write(`\r  read ${items.length}/${limit} usable (scanned ${start} rows)…`)
+  }
+  process.stdout.write('\n')
+  return items
+}
+
 async function fromJsonl(file, limit) {
   const raw = await readFile(file, 'utf8')
   const items = []
@@ -239,6 +272,9 @@ async function main() {
   if (SOURCE === 'jsonl') {
     if (!INPUT) throw new Error('--source=jsonl requires --input=FILE')
     items = await fromJsonl(INPUT, LIMIT)
+  } else if (SOURCE === 'parquet') {
+    if (!INPUT) throw new Error('--source=parquet requires --input=FILE')
+    items = await fromParquet(INPUT, LIMIT)
   } else if (SOURCE === 'hf') {
     items = await fromHf(LIMIT)
   } else {

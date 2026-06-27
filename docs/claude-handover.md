@@ -16,9 +16,11 @@ Newest entries first. Each dated entry overrides the older body below it.
 - **Pre-loaded "general knowledge" pack (Simple Wikipedia).** Lets the app cite
   broad facts offline, out of the box.
   - Build pipeline: `scripts/build-knowledge-pack.mjs` (npm `build:knowledge`).
-    Sources: `--source=hf` (HF datasets-server rows API — recommended, no parquet
-    tooling, generous rate limit), `--source=api` (live Simple Wikipedia, rate-
-    limited — has backoff), `--source=jsonl --input=FILE`. Embeds with the SAME
+    Sources: `--source=parquet --input=FILE` (read a local HF parquet shard via
+    hyparquet — recommended for large builds, no API calls, immune to rate
+    limits), `--source=hf` (HF datasets-server rows API — fine for a few thousand,
+    throttles at 25k), `--source=api` (live Simple Wikipedia, backoff),
+    `--source=jsonl --input=FILE`. Embeds with the SAME
     model as the app (all-MiniLM-L6-v2, normalize:true), int8-quantizes, writes a
     versioned `.bin` + `.json` manifest to `public/knowledge/`.
   - Runtime: `src/lib/rag/pack.ts` holds the pack in memory (NOT IndexedDB) as a
@@ -38,17 +40,18 @@ Newest entries first. Each dated entry overrides the older body below it.
   any user upload). Download→install→toggle→remove UX all work. `svelte-check`: 0.
 
 ### Deploy state
-- Committed to branch **`feat/knowledge-pack-citations`** (NOT merged to main, NOT
-  pushed). One repo: Universal_AI.
-- The generated pack binary is **git-ignored** and **not** committed — only the
-  build script + runtime ship. `.gitattributes` routes `public/knowledge/*.bin`
-  through Git LFS for when the real pack is added.
+- Merged into **main** (local; NOT pushed to origin). Feature branch
+  `feat/knowledge-pack-citations` retained. One repo: Universal_AI.
+- A real **25k-article pack (16.9 MB)** is built locally at
+  `public/knowledge/simplewiki.v1.{bin,json}` but is **git-ignored** and NOT
+  committed — only the build script + runtime ship. `.gitattributes` routes
+  `public/knowledge/*.bin` through Git LFS for when the pack is committed.
 
 ### What's left / next
-1. **Ship a real pack:** `npm run build:knowledge -- --source=hf --limit=25000`
-   (a few min CPU embedding), then commit the `.bin` via LFS — requires
-   `brew install git-lfs && git lfs install` first (LFS not installed on this
-   machine). Un-ignore `public/knowledge/` deliberately when committing it.
-2. **Merge** `feat/knowledge-pack-citations` to main + push when ready.
+1. **Ship the built pack:** the 25k `.bin` already exists locally. To commit it:
+   `brew install git-lfs && git lfs install`, then un-ignore `public/knowledge/`
+   and `git add` the `.bin` (LFS handles it). Rebuild any time with
+   `npm run build:knowledge -- --source=parquet --input=/tmp/simplewiki.parquet --limit=25000`.
+2. **Push** main to origin when ready.
 3. **Future:** online web-search source — reuses the same `[n]`/`buildContext`
    citation path with web snippets + URLs instead of local files.

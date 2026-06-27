@@ -56,9 +56,8 @@
           <h3>Answer from your own documents</h3>
           <p>
             Add files under <b>Knowledge</b> and the AI answers from them — with
-            sources — instead of guessing from memory. It looks up the passages
-            most relevant to your question and writes its reply based on those.
-            <span class="tag">This is called RAG — Retrieval-Augmented Generation.</span>
+            sources — instead of answering from training memory.
+            <span class="tag">This is called RAG<br />(Retrieval-Augmented Generation)</span>
           </p>
         </div>
       </div>
