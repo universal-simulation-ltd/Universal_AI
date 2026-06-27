@@ -50,10 +50,17 @@
     {#if $messages.length === 0}
       <div class="empty">
         <h2>Offline &amp; private</h2>
-        <p>
-          Everything runs on your device. Load a model above, then chat. Add
-          documents under <b>Knowledge</b> to ground answers with RAG.
-        </p>
+        <p>Everything runs on your device. Load a model above, then chat.</p>
+
+        <div class="rag-card">
+          <h3>Answer from your own documents</h3>
+          <p>
+            Add files under <b>Knowledge</b> and the AI answers from them — with
+            sources — instead of guessing from memory. It looks up the passages
+            most relevant to your question and writes its reply based on those.
+            <span class="tag">This is called RAG.</span>
+          </p>
+        </div>
       </div>
     {:else}
       {#each $messages as msg (msg.id)}
@@ -96,12 +103,33 @@
   }
   .empty {
     margin: auto;
-    max-width: 28ch;
+    max-width: 34ch;
     text-align: center;
     color: var(--text-dim);
-    padding-top: 18vh;
+    padding-top: 12vh;
   }
   .empty h2 { color: var(--text); margin: 0 0 0.4rem; }
+  .rag-card {
+    margin-top: 1.4rem;
+    padding: 0.9rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: left;
+  }
+  .rag-card h3 {
+    margin: 0 0 0.4rem;
+    color: var(--text);
+    font-size: 0.98rem;
+  }
+  .rag-card p { margin: 0; font-size: 0.88rem; line-height: 1.5; }
+  .tag {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
   .composer {
     display: flex;
     align-items: flex-end;

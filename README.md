@@ -4,6 +4,17 @@ A mobile-first, installable Progressive Web App that runs a small general-purpos
 LLM **entirely on-device** — no server, no API calls — and lets you plug in your
 own **RAG knowledge bases** to ground answers.
 
+## What is RAG?
+
+**Retrieval-Augmented Generation** lets the AI answer from *your* documents.
+Language models are frozen at training time — they don't know your notes or
+private docs. Instead of retraining, RAG breaks your documents into small
+passages, finds the ones whose meaning is closest to your question, and gives
+them to the model as context. The model then answers *grounded in your material*
+— quoting it and citing the source — rather than guessing from memory. It's the
+difference between asking someone to recall a fact and letting them read the
+relevant page first.
+
 ## How it works
 
 | Layer | Choice | Notes |
