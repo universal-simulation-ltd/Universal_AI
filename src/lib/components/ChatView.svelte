@@ -70,11 +70,20 @@
   </div>
 
   <div class="composer">
-    {#if $messages.length > 0}
-      <button class="ghost" title="Clear chat" onclick={clearChat} disabled={$generating}>
-        ⌫
-      </button>
-    {/if}
+    <button
+      class="ghost bin"
+      title="Delete all messages and start again"
+      aria-label="Delete all messages and start again"
+      onclick={clearChat}
+      disabled={$messages.length === 0 || $generating}
+    >
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 6h18" />
+        <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+        <path d="M10 11v6M14 11v6" />
+      </svg>
+    </button>
     <textarea
       bind:this={textarea}
       bind:value={draft}
@@ -148,5 +157,12 @@
     border-radius: 50%;
   }
   .ghost { background: transparent; }
+  .bin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+  }
+  .bin:active:not(:disabled) { color: var(--danger); }
   .stop { background: var(--danger); border-color: var(--danger); }
 </style>

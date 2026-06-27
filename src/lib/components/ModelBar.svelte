@@ -11,6 +11,12 @@
 
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
   let models = $derived(modelsFor($backend))
+
+  // WebLLM's progress text appends a verbose "It can take a while…" sentence;
+  // trim it so the status stays compact.
+  let statusText = $derived(
+    ($loadProgress?.text ?? 'Loading…').replace(/\s*It can take a while[\s\S]*$/i, '').trim(),
+  )
 </script>
 
 <div class="bar" class:error={$engineStatus === 'error'}>
@@ -24,7 +30,7 @@
   {:else if $engineStatus === 'loading'}
     <div class="loading">
       <div class="track"><div class="fill" style="width:{pct}%"></div></div>
-      <span class="status">{$loadProgress?.text ?? 'Loading…'} {pct}%</span>
+      <span class="status loading-status">{statusText}</span>
     </div>
   {:else}
     <select bind:value={$modelId}>
@@ -58,6 +64,7 @@
     padding: 0.55rem 0.9rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    overflow: hidden;
   }
   select {
     flex: 1;
@@ -71,7 +78,18 @@
   }
   .status { font-size: 0.85rem; color: var(--text-dim); white-space: nowrap; }
   .status.ok { color: var(--ok); }
-  .loading { flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
+  .loading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+  /* Long model-download text must wrap and stay inside the column. */
+  .loading-status {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   .track {
     height: 6px;
     background: var(--surface-2);

@@ -15,6 +15,14 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
+  /* App is mobile-first; on wider screens it stays a centered, contained column
+     so it's easy to navigate rather than sprawling across the viewport.
+     A future "full width" setting overrides this at runtime, e.g.
+       document.documentElement.style.setProperty('--app-max-width', '100%')
+     (mirrors the --doc-display-width pattern in Universal_PDF). */
+  --app-max-width: 640px;
+  --frame: #06070a;
+
   color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -30,13 +38,29 @@ html, body, #app {
 }
 
 body {
-  background: var(--bg);
+  background: var(--frame);
   color: var(--text);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
 
-#app { display: flex; flex-direction: column; }
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--app-max-width);
+  margin-inline: auto;
+  background: var(--bg);
+}
+
+/* Frame the contained column only when there's room around it. On mobile the
+   column fills the screen, so no borders/shadow at the very edges. */
+@media (min-width: 680px) {
+  #app {
+    border-inline: 1px solid var(--border);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
+  }
+}
 
 button {
   font: inherit;
