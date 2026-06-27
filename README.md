@@ -23,7 +23,8 @@ relevant page first.
 | Inference (CPU) | [wllama](https://github.com/ngxson/wllama) (llama.cpp WASM) | Automatic fallback when WebGPU is absent. Slower, but runs almost everywhere. |
 | Engine abstraction | `src/lib/engine` | One `LLMEngine` interface; both backends implement it. `detectBackend()` picks GPU vs CPU and the chosen engine is dynamically imported, so a device only downloads the backend it uses. |
 | Embeddings | [transformers.js](https://github.com/huggingface/transformers.js) — `all-MiniLM-L6-v2` (384-d) | Runs locally; WebGPU if available, else WASM. |
-| Vector store | IndexedDB + brute-force cosine | `src/lib/rag`. Fine for on-device corpus sizes. |
+| Vector store | IndexedDB (your docs) + an in-memory int8 pack (bundled knowledge) | `src/lib/rag`. Brute-force cosine over both; fine for on-device corpus sizes. |
+| Bundled knowledge | Pre-built Simple Wikipedia pack (`scripts/build-knowledge-pack.mjs`) | 25k article intros, int8-quantized, shipped via Git LFS; downloaded + cached on demand so general-knowledge answers can cite a source offline. |
 | Shell | Svelte 5 + Vite + `vite-plugin-pwa` | Installable, offline app shell. |
 
 Nothing leaves the device. The only network traffic is the **first-run download**
@@ -41,6 +42,17 @@ manage their own cache; the app shell is precached by the service worker).
 
 ## Develop
 
+> **Git LFS required.** The bundled general-knowledge pack
+> (`public/knowledge/simplewiki.v1.bin`, ~17 MB) is stored in
+> [Git LFS](https://git-lfs.com). Install it **before cloning** so the real
+> binary is fetched instead of a small text pointer — otherwise the built-in
+> "General knowledge" base will 404 on download. Already cloned? Run
+> `git lfs install && git lfs pull`.
+>
+> ```
+> brew install git-lfs && git lfs install   # once per machine
+> ```
+
 ```
 cd /Users/jamesmarkey/Github/UNISIM/Universal_Apps/Universal_AI
 npm install
@@ -51,13 +63,30 @@ npm run preview  # serve the built app
 
 > Note: the PWA service worker is only generated in `build`/`preview`, not `dev`.
 
+### Rebuilding the knowledge pack
+
+The pre-built pack ships in the repo, so you don't need to regenerate it. To
+rebuild or resize it (Simple English Wikipedia intros, embedded + int8-packed):
+
+```
+cd /Users/jamesmarkey/Github/UNISIM/Universal_Apps/Universal_AI
+curl -sL "https://huggingface.co/datasets/wikimedia/wikipedia/resolve/refs%2Fconvert%2Fparquet/20231101.simple/train/0000.parquet" -o /tmp/simplewiki.parquet
+npm run build:knowledge -- --source=parquet --input=/tmp/simplewiki.parquet --limit=25000
+```
+
+Other sources: `--source=hf` (datasets-server API, fine for a few thousand),
+`--source=api` (live wiki, rate-limited), `--source=jsonl --input=FILE`.
+
 ## Using it
 
 1. Pick a model in the top bar and tap **Load model** (downloads once, ~0.9–2.2 GB).
 2. Chat. Generation streams token-by-token; **■** stops it.
 3. Open **Knowledge** to paste text or upload `.txt`/`.md` files. They’re chunked,
    embedded, and stored locally. Toggle a base on to ground answers; cited
-   sources appear under the reply.
+   sources appear under the reply (as numbered `[n]` footnotes).
+4. The built-in **General knowledge (Simple Wikipedia)** base is one tap to
+   download (~17 MB, cached offline). Enable it to cite broad facts without
+   uploading anything.
 
 ## Models
 
