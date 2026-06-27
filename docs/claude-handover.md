@@ -40,18 +40,17 @@ Newest entries first. Each dated entry overrides the older body below it.
   any user upload). Download→install→toggle→remove UX all work. `svelte-check`: 0.
 
 ### Deploy state
-- Merged into **main** (local; NOT pushed to origin). Feature branch
+- Merged into **main** and **pushed to origin**. Feature branch
   `feat/knowledge-pack-citations` retained. One repo: Universal_AI.
-- A real **25k-article pack (16.9 MB)** is built locally at
-  `public/knowledge/simplewiki.v1.{bin,json}` but is **git-ignored** and NOT
-  committed — only the build script + runtime ship. `.gitattributes` routes
-  `public/knowledge/*.bin` through Git LFS for when the pack is committed.
+- The real **25k-article pack (16.9 MB)** at `public/knowledge/simplewiki.v1.bin`
+  is committed via **Git LFS** (`.gitattributes` routes `*.bin`; the `.json`
+  manifest is a normal small file). Git LFS is now installed on this machine.
+- Rebuild the pack any time with:
+  `npm run build:knowledge -- --source=parquet --input=/tmp/simplewiki.parquet --limit=25000`
+  (parquet shard from HF; see the build script header for the curl one-liner).
 
 ### What's left / next
-1. **Ship the built pack:** the 25k `.bin` already exists locally. To commit it:
-   `brew install git-lfs && git lfs install`, then un-ignore `public/knowledge/`
-   and `git add` the `.bin` (LFS handles it). Rebuild any time with
-   `npm run build:knowledge -- --source=parquet --input=/tmp/simplewiki.parquet --limit=25000`.
-2. **Push** main to origin when ready.
-3. **Future:** online web-search source — reuses the same `[n]`/`buildContext`
+1. **Future:** online web-search source — reuses the same `[n]`/`buildContext`
    citation path with web snippets + URLs instead of local files.
+2. Optional: larger pack (>25k) or multiple language packs — same pipeline,
+   bump `--limit` / `--version` and the `MANIFEST_URL` in `src/lib/rag/pack.ts`.

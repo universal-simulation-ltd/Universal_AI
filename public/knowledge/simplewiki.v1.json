@@ -1,0 +1,11 @@
+{
+  "id": "builtin:simplewiki",
+  "name": "General knowledge (Simple Wikipedia)",
+  "version": 1,
+  "bin": "simplewiki.v1.bin",
+  "dim": 384,
+  "count": 25000,
+  "scale": 127,
+  "bytes": 17767529,
+  "approxMB": 16.9
+}
