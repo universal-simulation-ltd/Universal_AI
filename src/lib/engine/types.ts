@@ -27,7 +27,7 @@ export interface LLMEngine {
   /** True if this engine can run in the current browser/device. */
   isSupported(): Promise<boolean>
   /** Download (cached after first run) + initialise the model. */
-  load(modelId: string, onProgress?: (p: LoadProgress) => void): Promise<void>
+  load(model: ModelOption, onProgress?: (p: LoadProgress) => void): Promise<void>
   /** Stream a completion. Resolves with the full text once finished. */
   generate(
     messages: ChatMessage[],
@@ -40,7 +40,10 @@ export interface LLMEngine {
   unload(): Promise<void>
 }
 
+export type EngineKind = 'webllm' | 'wllama'
+
 export interface ModelOption {
+  /** Stable key for the UI / selection. */
   id: string
   label: string
   /** Approx download size, for the UI. */
@@ -48,4 +51,8 @@ export interface ModelOption {
   /** Approx RAM/VRAM needed while running. */
   ramMB: number
   note?: string
+  /** MLC model id for the WebGPU (WebLLM) backend, if supported. */
+  webllm?: string
+  /** GGUF location on HuggingFace for the WASM/CPU (wllama) backend, if supported. */
+  wllama?: { repo: string; file: string }
 }

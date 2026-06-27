@@ -1,8 +1,12 @@
 import { writable, get } from 'svelte/store'
 import {
   createEngine,
+  detectBackend,
   DEFAULT_MODEL_ID,
+  MODELS,
+  modelsFor,
   type ChatMessage,
+  type EngineKind,
   type LLMEngine,
   type LoadProgress,
 } from './engine'
@@ -27,6 +31,8 @@ export interface UIMessage {
 export type EngineStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export const modelId = writable<string>(DEFAULT_MODEL_ID)
+/** Which backend this device will use; null until detected. */
+export const backend = writable<EngineKind | null>(null)
 export const engineStatus = writable<EngineStatus>('idle')
 export const loadProgress = writable<LoadProgress | null>(null)
 export const engineError = writable<string | null>(null)
@@ -39,6 +45,16 @@ export const kbs = writable<KnowledgeBase[]>([])
 let engine: LLMEngine | null = null
 let idCounter = 0
 const uid = () => `m_${Math.floor(performance.now() * 1000)}_${idCounter++}`
+
+/** Detect the backend once at startup and ensure the selected model fits it. */
+export async function detectCapabilities(): Promise<void> {
+  const kind = await detectBackend()
+  backend.set(kind)
+  const runnable = modelsFor(kind)
+  if (!runnable.some((m) => m.id === get(modelId)) && runnable.length > 0) {
+    modelId.set(runnable[0].id)
+  }
+}
 
 export async function refreshKBs(): Promise<void> {
   kbs.set(await listKBs())
@@ -60,7 +76,9 @@ export async function loadModel(): Promise<void> {
   loadProgress.set({ progress: 0, text: 'Initializing…' })
   try {
     if (!engine) engine = await createEngine()
-    await engine.load(get(modelId), (p) => loadProgress.set(p))
+    const model = MODELS.find((m) => m.id === get(modelId))
+    if (!model) throw new Error('No model selected')
+    await engine.load(model, (p) => loadProgress.set(p))
     engineStatus.set('ready')
   } catch (err) {
     engineStatus.set('error')

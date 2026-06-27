@@ -1,21 +1,23 @@
 <script lang="ts">
-  import { MODELS } from '../engine'
+  import { modelsFor } from '../engine'
   import {
     engineStatus,
     loadProgress,
     engineError,
     modelId,
+    backend,
     loadModel,
   } from '../stores'
 
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
+  let models = $derived(modelsFor($backend))
 </script>
 
 <div class="bar" class:error={$engineStatus === 'error'}>
   {#if $engineStatus === 'ready'}
     <span class="status ok">● Ready</span>
     <select bind:value={$modelId} onchange={() => loadModel()}>
-      {#each MODELS as m}
+      {#each models as m}
         <option value={m.id}>{m.label}</option>
       {/each}
     </select>
@@ -26,7 +28,7 @@
     </div>
   {:else}
     <select bind:value={$modelId}>
-      {#each MODELS as m}
+      {#each models as m}
         <option value={m.id}>{m.label} · {(m.sizeMB / 1000).toFixed(1)}GB</option>
       {/each}
     </select>
@@ -38,8 +40,13 @@
   <p class="err">{$engineError}</p>
 {:else if $engineStatus === 'idle'}
   <p class="hint">
-    First load downloads the model (cached afterwards, runs fully offline). Best
-    on Wi-Fi.
+    {#if $backend === 'wllama'}
+      ⚙️ CPU mode (no WebGPU on this device) — slower, but works. First load
+      downloads the model (cached afterwards, runs fully offline). Best on Wi-Fi.
+    {:else}
+      First load downloads the model (cached afterwards, runs fully offline).
+      Best on Wi-Fi.
+    {/if}
   </p>
 {/if}
 

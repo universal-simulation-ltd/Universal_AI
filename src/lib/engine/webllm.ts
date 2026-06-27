@@ -3,7 +3,13 @@ import {
   type MLCEngineInterface,
   type InitProgressReport,
 } from '@mlc-ai/web-llm'
-import type { ChatMessage, GenerateOptions, LLMEngine, LoadProgress } from './types'
+import type {
+  ChatMessage,
+  GenerateOptions,
+  LLMEngine,
+  LoadProgress,
+  ModelOption,
+} from './types'
 
 export class WebLLMEngine implements LLMEngine {
   readonly id = 'webllm'
@@ -21,7 +27,11 @@ export class WebLLMEngine implements LLMEngine {
     }
   }
 
-  async load(modelId: string, onProgress?: (p: LoadProgress) => void): Promise<void> {
+  async load(model: ModelOption, onProgress?: (p: LoadProgress) => void): Promise<void> {
+    const modelId = model.webllm
+    if (!modelId) {
+      throw new Error(`"${model.label}" has no WebGPU variant.`)
+    }
     if (this.loadedModel === modelId && this.engine) return
 
     // Reuse one worker across model swaps.

@@ -28,14 +28,39 @@ export default defineConfig({
       workbox: {
         // Only precache the app shell. Model weights are large and are managed
         // by WebLLM / transformers.js in their own Cache Storage + IndexedDB.
+        // Precache only the lightweight app shell. The heavy, backend-specific
+        // chunks (WebLLM ~6MB, wllama, ONNX-runtime wasm) are runtime-cached on
+        // first use, so each device caches only the backend it actually runs and
+        // the SW installs fast.
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
-        // The WebLLM runtime + worker are several MB each and must be precached
-        // so the app shell works fully offline. (Model *weights* are far larger
-        // and are cached separately by WebLLM itself, not here.)
-        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
+        globIgnores: ['**/webllm*.js', '**/wllama*.js'],
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         navigateFallbackDenylist: [/^\/api/],
-        // Never let Workbox try to handle the multi-GB model fetches.
-        runtimeCaching: [],
+        runtimeCaching: [
+          {
+            // Backend-specific .wasm binaries (wllama, ONNX runtime) — cache on
+            // first use so the app is offline-capable afterwards.
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && url.pathname.endsWith('.wasm'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wasm-runtime',
+              expiration: { maxEntries: 12 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // The dynamically-imported engine JS chunks (WebLLM / wllama).
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /\/(webllm|wllama)[^/]*\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'engine-js',
+              expiration: { maxEntries: 8 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: { enabled: false },
     }),
@@ -43,6 +68,6 @@ export default defineConfig({
   worker: { format: 'es' },
   optimizeDeps: {
     // These ship their own workers/wasm; let Vite leave them alone.
-    exclude: ['@mlc-ai/web-llm', '@huggingface/transformers'],
+    exclude: ['@mlc-ai/web-llm', '@huggingface/transformers', '@wllama/wllama'],
   },
 })

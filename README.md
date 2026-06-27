@@ -8,8 +8,9 @@ own **RAG knowledge bases** to ground answers.
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Inference | [WebLLM](https://github.com/mlc-ai/web-llm) (WebGPU) in a Web Worker | Runs the LLM on the GPU off the main thread. |
-| Engine abstraction | `src/lib/engine` | One `LLMEngine` interface. A WASM/CPU fallback (wllama) can be added without touching the rest of the app. |
+| Inference (GPU) | [WebLLM](https://github.com/mlc-ai/web-llm) (WebGPU) in a Web Worker | Runs the LLM on the GPU off the main thread. Preferred when available. |
+| Inference (CPU) | [wllama](https://github.com/ngxson/wllama) (llama.cpp WASM) | Automatic fallback when WebGPU is absent. Slower, but runs almost everywhere. |
+| Engine abstraction | `src/lib/engine` | One `LLMEngine` interface; both backends implement it. `detectBackend()` picks GPU vs CPU and the chosen engine is dynamically imported, so a device only downloads the backend it uses. |
 | Embeddings | [transformers.js](https://github.com/huggingface/transformers.js) — `all-MiniLM-L6-v2` (384-d) | Runs locally; WebGPU if available, else WASM. |
 | Vector store | IndexedDB + brute-force cosine | `src/lib/rag`. Fine for on-device corpus sizes. |
 | Shell | Svelte 5 + Vite + `vite-plugin-pwa` | Installable, offline app shell. |
@@ -20,10 +21,12 @@ manage their own cache; the app shell is precached by the service worker).
 
 ## Requirements
 
-- **iPhone**: iOS 26+ Safari (WebGPU enabled by default). iPhone 15 Pro etc. work.
-- **Desktop**: recent Chrome, Edge, or Safari.
-- WebGPU is required today. If unavailable, the app shows a clear message; a
-  wllama (WASM/CPU) fallback is the planned next step — see `src/lib/engine/index.ts`.
+- **iPhone**: iOS 26+ Safari runs the fast WebGPU path (iPhone 15 Pro etc.).
+  Older iOS falls back to the wllama CPU path automatically.
+- **Desktop**: recent Chrome, Edge, or Safari use WebGPU; anything else falls
+  back to CPU.
+- No WebGPU? The app transparently switches to the wllama (WASM/CPU) backend and
+  shows a "CPU mode" hint. The model list is filtered to what that backend runs.
 
 ## Develop
 
@@ -68,7 +71,7 @@ src/
 
 ## Known follow-ups
 
-- wllama (WASM/CPU) fallback engine for non-WebGPU devices.
 - Real PNG/maskable icons (currently an SVG placeholder).
 - PDF ingestion (today: plain text / markdown).
-- Optional run embeddings in a worker to keep ingestion fully off the main thread.
+- Optionally run embeddings in a worker to keep ingestion fully off the main thread.
+- End-to-end browser verification of both backends (model download + inference).
