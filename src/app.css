@@ -29,6 +29,26 @@
   line-height: 1.5;
 }
 
+/* Light theme — applied when settings.ts sets <html data-theme="light"> (the
+   Customise tab's Light / System options). Dark remains the base :root above,
+   so data-theme="dark" needs no overrides. */
+:root[data-theme='light'] {
+  --bg: #ffffff;
+  --surface: #f6f8fb;
+  --surface-2: #eceff5;
+  --border: #d8dee9;
+  --text: #0f172a;
+  --text-dim: #5b6678;
+  --accent: #2563eb;
+  --accent-press: #1d4ed8;
+  --user-bubble: #dbeafe;
+  --bot-bubble: #ffffff;
+  --danger: #dc2626;
+  --ok: #16a34a;
+  --frame: #e7ebf1;
+  color-scheme: light;
+}
+
 * { box-sizing: border-box; }
 
 html, body, #app {

@@ -10,6 +10,7 @@ import { ensurePackLoaded, searchPack } from './pack'
 
 export * from './store'
 export * from './pack'
+export { webSearch } from './websearch'
 
 /** KB ids with this prefix are served by the in-memory pack, not IndexedDB. */
 export const BUILTIN_PREFIX = 'builtin:'
@@ -97,6 +98,9 @@ export interface RetrievedChunk {
   text: string
   source: string
   score: number
+  /** Set for web-search results: the real URL the snippet came from. Local
+   *  documents and the bundled pack leave this undefined. */
+  url?: string
 }
 
 /**

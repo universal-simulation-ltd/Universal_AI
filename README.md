@@ -103,10 +103,12 @@ Defaults target an iPhone-15-Pro-class device (`src/lib/engine/models.ts`):
 src/
   lib/
     engine/    LLM abstraction + WebLLM worker implementation + model list
-    rag/       embeddings, IndexedDB vector store, chunk/retrieve/ground
-    components/ ModelBar, ChatView, MessageBubble, KnowledgeView
-    stores.ts  app state + orchestration (engine + RAG)
-  App.svelte   shell (Chat / Knowledge tabs)
+    rag/       embeddings, IndexedDB vector store, chunk/retrieve/ground, websearch
+    components/ ModelBar, ChatView, MessageBubble, KnowledgeView,
+                CustomiseView, WelcomeGate
+    stores.ts  app state + orchestration (engine + RAG, online, modelEverLoaded)
+    settings.ts persisted prefs (theme, name, web-search opt-in)
+  App.svelte   shell (Chat / Knowledge / Customise tabs + first-run gate)
 ```
 
 ## Known follow-ups
