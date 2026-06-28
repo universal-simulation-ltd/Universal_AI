@@ -232,12 +232,18 @@ export async function loadModel(): Promise<void> {
 }
 
 const SYSTEM_BASE =
-  'You are Universal AI, a concise, helpful offline assistant running entirely ' +
-  'on the user’s device. Answer the question directly and up front in your first ' +
-  'sentence, then add any supporting detail. Only cite sources that are ' +
-  'explicitly provided to you in a numbered context block. Never invent ' +
-  'citations, source names, or [n] markers for general knowledge that did not ' +
-  'come from such a block.'
+  ‘You are Universal AI, a concise, helpful offline assistant running entirely ‘ +
+  ‘on the user’s device. Answer the question directly and up front in your first ‘ +
+  ‘sentence, then add any supporting detail. Only cite sources that are ‘ +
+  ‘explicitly provided to you in a numbered context block. Never invent ‘ +
+  ‘citations, source names, or [n] markers for general knowledge that did not ‘ +
+  ‘come from such a block.’
+
+const SAFE_MODE_ADDON =
+  ‘\n\nSafe mode is enabled. You must refuse any request that involves sexual ‘ +
+  ‘or adult content, gambling, violence, illegal activities, or other harmful ‘ +
+  ‘or inappropriate topics. Politely decline and suggest the user use a ‘ +
+  ‘different resource for such topics.’
 
 /**
  * Map the best cited-source match score to a coarse confidence band. Cosine
@@ -265,7 +271,7 @@ export async function send(userText: string): Promise<void> {
   try {
     // RAG: retrieve from enabled KBs (+ opt-in web search) and ground the prompt.
     const cfg = get(settings)
-    let system = SYSTEM_BASE
+    let system = SYSTEM_BASE + (cfg.safeMode !== false ? SAFE_MODE_ADDON : '')
     if (cfg.aiName.trim()) {
       system +=
         `\n\nYour name is ${cfg.aiName.trim()}. When asked your name or ` +
