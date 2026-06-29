@@ -8,7 +8,7 @@
     loadModel,
     online,
   } from '../stores'
-  import { settings, setTheme, setAiName, setUserName, setWebSearch, type ThemePref } from '../settings'
+  import { settings, setTheme, setAiName, setUserName, setWebSearch, setSafeMode, setClearOnClose, type ThemePref } from '../settings'
 
   let models = $derived(modelsFor($backend))
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
@@ -114,6 +114,51 @@
       </span>
     </label>
   </section>
+
+  <!-- Privacy & Safety -->
+  <section>
+    <h3>Privacy &amp; Safety</h3>
+
+    <!-- Private mode — always on, shown locked for user confidence -->
+    <div class="locked-row">
+      <label class="toggle locked">
+        <input type="checkbox" checked disabled aria-disabled="true" />
+        <span class="switch" aria-hidden="true"></span>
+        <span class="toggle-label">Private mode</span>
+      </label>
+      <span class="locked-badge">Always on</span>
+    </div>
+    <p class="hint">Everything runs entirely on your device. No data is ever sent to a server.</p>
+
+    <!-- Safe mode -->
+    <label class="toggle" style="margin-top:0.6rem">
+      <input
+        type="checkbox"
+        checked={$settings.safeMode !== false}
+        onchange={(e) => setSafeMode((e.currentTarget as HTMLInputElement).checked)}
+      />
+      <span class="switch" aria-hidden="true"></span>
+      <span class="toggle-label">Safe mode {$settings.safeMode !== false ? 'on' : 'off'}</span>
+    </label>
+    <p class="hint">
+      When on, the assistant refuses topics like adult content, gambling, and harmful material.
+      Recommended for shared or family devices.
+    </p>
+
+    <!-- Clear on close -->
+    <label class="toggle" style="margin-top:0.6rem">
+      <input
+        type="checkbox"
+        checked={$settings.clearOnClose !== false}
+        onchange={(e) => setClearOnClose((e.currentTarget as HTMLInputElement).checked)}
+      />
+      <span class="switch" aria-hidden="true"></span>
+      <span class="toggle-label">Clear on close {$settings.clearOnClose !== false ? 'on' : 'off'}</span>
+    </label>
+    <p class="hint">
+      Automatically clears your chat history when you close the app so no conversation lingers between sessions.
+    </p>
+  </section>
 </div>
 
 <style>
@@ -191,4 +236,19 @@
   .toggle input:focus-visible + .switch { outline: 2px solid var(--accent); outline-offset: 2px; }
   .toggle-label { font-size: 0.86rem; color: var(--text); }
   .warn { color: var(--danger); font-size: 0.78rem; }
+  .locked-row { display: flex; align-items: center; gap: 0.6rem; }
+  .locked { opacity: 0.65; cursor: default; pointer-events: none; }
+  .locked-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--ok);
+    border: 1px solid var(--ok);
+    border-radius: 999px;
+    padding: 0.05rem 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .toggle input:disabled + .switch { background: var(--accent); border-color: var(--accent); }
+  .toggle input:disabled + .switch::after { transform: translateX(18px); background: #fff; }
 </style>

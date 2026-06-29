@@ -20,6 +20,16 @@ export interface Settings {
    * device is online) enabled chats can cite real URLs alongside local docs.
    */
   webSearch: boolean
+  /**
+   * Safe mode — on by default. When on, the assistant refuses to discuss adult,
+   * sexual, gambling, or otherwise inappropriate topics.
+   */
+  safeMode: boolean
+  /**
+   * Clear on close — on by default. Clears the conversation history when the
+   * browser tab/window is closed, so no chat lingers between sessions.
+   */
+  clearOnClose: boolean
 }
 
 const KEY = 'universal-ai:settings'
@@ -29,6 +39,8 @@ const DEFAULTS: Settings = {
   aiName: '',
   userName: '',
   webSearch: false,
+  safeMode: true,
+  clearOnClose: true,
 }
 
 function load(): Settings {
@@ -101,4 +113,12 @@ export function setUserName(userName: string): void {
 
 export function setWebSearch(webSearch: boolean): void {
   settings.update((s) => ({ ...s, webSearch }))
+}
+
+export function setSafeMode(safeMode: boolean): void {
+  settings.update((s) => ({ ...s, safeMode }))
+}
+
+export function setClearOnClose(clearOnClose: boolean): void {
+  settings.update((s) => ({ ...s, clearOnClose }))
 }

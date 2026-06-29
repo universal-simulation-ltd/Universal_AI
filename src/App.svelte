@@ -13,6 +13,7 @@
     kbs,
     online,
     modelEverLoaded,
+    clearChat,
   } from './lib/stores'
   import { settings } from './lib/settings'
 
@@ -25,6 +26,14 @@
     detectCapabilities()
     await seedBuiltinKB()
     loadPackIntoMemory() // best-effort warm if previously installed
+
+    // Clear on close — wipe the conversation when the tab/window closes so no
+    // chat history lingers between sessions (on by default).
+    const handleUnload = () => {
+      if ($settings.clearOnClose !== false) clearChat()
+    }
+    window.addEventListener('pagehide', handleUnload)
+    return () => window.removeEventListener('pagehide', handleUnload)
   })
 
   let enabledCount = $derived($kbs.filter((k) => k.enabled).length)
