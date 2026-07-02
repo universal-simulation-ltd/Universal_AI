@@ -5,3 +5,6 @@ dev-dist
 .claude/settings.local.json
 .DS_Store
 .vite
+
+# Internal project notes — not published (matches the other Universal Apps repos)
+CLAUDE.md
