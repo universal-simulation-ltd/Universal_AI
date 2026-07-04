@@ -9,6 +9,7 @@
     online,
   } from '../stores'
   import { settings, setTheme, setAiName, setUserName, setWebSearch, setSafeMode, setClearOnClose, type ThemePref } from '../settings'
+  import UniversalIdBackup from './UniversalIdBackup.svelte'
 
   let models = $derived(modelsFor($backend))
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
@@ -128,7 +129,7 @@
       </label>
       <span class="locked-badge">Always on</span>
     </div>
-    <p class="hint">Everything runs entirely on your device. No data is ever sent to a server.</p>
+    <p class="hint">Chats and documents run entirely on your device and are never sent to a server. The only network use is what you opt into — web search or Universal ID backup.</p>
 
     <!-- Safe mode -->
     <label class="toggle" style="margin-top:0.6rem">
@@ -159,6 +160,9 @@
       Automatically clears your chat history when you close the app so no conversation lingers between sessions.
     </p>
   </section>
+
+  <!-- Universal ID settings backup -->
+  <UniversalIdBackup />
 </div>
 
 <style>
