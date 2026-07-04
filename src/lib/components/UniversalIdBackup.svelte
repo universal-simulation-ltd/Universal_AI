@@ -1,4 +1,7 @@
 <script lang="ts">
+  // ?inline forces a data-URI import (the 6KB mark is over Vite's 4KB auto-
+  // inline limit), so the logo ships inside the precached JS and works offline.
+  import unisimIcon from '../assets/unisim-icon.png?inline'
   import { online } from '../stores'
   import {
     universalIdUser,
@@ -72,20 +75,24 @@
 </script>
 
 <section>
-  <h3>Universal ID <span class="tag">opt-in</span></h3>
+  <h3>
+    <img class="mark" src={unisimIcon} alt="UNI·SIM" width="28" height="28" />
+    Universal ID <span class="tag">opt-in</span>
+  </h3>
   <p class="hint">
-    Back up the settings on this page to a free
+    Log in with your
     <a href="https://www.unisim.co.uk" target="_blank" rel="noopener">UNI·SIM</a>
-    Universal ID and restore them on any device. Only these settings are sent —
-    never your chats, documents, or models.
+    Universal ID to back up the settings on this page and restore them on any
+    device. Only these settings are sent — never your chats, documents, or
+    models.
   </p>
 
   {#if $universalIdUser}
     <div class="account">
       <span class="who" title={$universalIdUser.email ?? undefined}>
-        Signed in as <strong>{$universalIdUser.email ?? 'your Universal ID'}</strong>
+        Logged in as <strong>{$universalIdUser.email ?? 'your Universal ID'}</strong>
       </span>
-      <button class="linkish" onclick={onSignOut} disabled={busy}>Sign out</button>
+      <button class="linkish" onclick={onSignOut} disabled={busy}>Log out</button>
     </div>
     <p class="hint">
       {#if lastBackupLabel}
@@ -123,11 +130,17 @@
         onclick={onSendCode}
         disabled={busy || !$online || !email.includes('@')}
       >
-        Send code
+        Log in
       </button>
     </div>
+    <p class="hint">
+      We'll email you a one-time code — no password. New accounts can't be
+      created in the app: get a free Universal ID at
+      <a href="https://app.unisim.co.uk/login" target="_blank" rel="noopener">app.unisim.co.uk</a>
+      first.
+    </p>
     {#if !$online}
-      <p class="hint warn-line">You're offline — connect to sign in.</p>
+      <p class="hint warn-line">You're offline — connect to log in.</p>
     {/if}
   {:else}
     <label class="sublabel" for="uid-code">Enter the 6-digit code sent to {email}</label>
@@ -164,6 +177,13 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+  .mark {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: block;
   }
   .hint { margin: 0; font-size: 0.82rem; color: var(--text-dim); line-height: 1.45; }
   .hint a { color: var(--accent); }

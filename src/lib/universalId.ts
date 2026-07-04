@@ -62,13 +62,26 @@ supabase.auth.onAuthStateChange((_event, session) => {
   if (!u) lastBackupAt.set(null)
 })
 
-/** Email the user a 6-digit one-time code (creates the Universal ID if new). */
+/**
+ * Email the user a 6-digit one-time code. LOG IN ONLY — this never creates an
+ * account: Universal IDs are created on the hub (app.unisim.co.uk), not in
+ * the app, so a typo'd email can't mint a stray account here.
+ */
 export async function sendCode(email: string): Promise<void> {
   const { error } = await supabase.auth.signInWithOtp({
     email: email.trim(),
-    options: { shouldCreateUser: true },
+    options: { shouldCreateUser: false },
   })
-  if (error) throw error
+  if (error) {
+    // With shouldCreateUser:false, an unknown email comes back as a
+    // "Signups not allowed for otp" API error — translate it.
+    if (/signups? not allowed/i.test(error.message)) {
+      throw new Error(
+        'No Universal ID exists for that email. Create one free at app.unisim.co.uk, then log in here.',
+      )
+    }
+    throw error
+  }
 }
 
 /** Verify the emailed code and start the session. */
