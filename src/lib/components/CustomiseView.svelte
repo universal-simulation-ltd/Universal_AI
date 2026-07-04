@@ -2,6 +2,7 @@
   import { modelsFor, MODELS } from '../engine'
   import {
     engineStatus,
+    engineError,
     loadProgress,
     modelId,
     backend,
@@ -77,6 +78,9 @@
       <button class="primary" onclick={() => loadModel()}>
         {$engineStatus === 'ready' ? 'Switch / download model' : 'Download & load model'}
       </button>
+    {/if}
+    {#if $engineStatus === 'error' && $engineError}
+      <p class="err" role="alert">{$engineError}</p>
     {/if}
     {#if activeModel?.note}<p class="note">{activeModel.note}</p>{/if}
 
@@ -249,6 +253,7 @@
   select { width: 100%; font: inherit; color: var(--text); background: var(--surface-2);
     border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 0.7rem; }
   .note { margin: 0; font-size: 0.78rem; color: var(--text-dim); }
+  .err { margin: 0; font-size: 0.82rem; color: var(--danger); line-height: 1.4; }
   .progress { display: flex; flex-direction: column; gap: 0.35rem; }
   .track { height: 6px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }

@@ -57,6 +57,14 @@ export class WllamaEngine implements LLMEngine {
       // mid-chat. Paired with the history cap in stores.send() so prompts stay
       // within this window.
       n_ctx: 2048,
+      // llama.cpp's default n_batch is 2048; the prompt-processing compute
+      // buffers scale with it, costing hundreds of MB at load time. 256 keeps
+      // chat latency fine (prompts are decoded in 256-token slices) and lowers
+      // the peak that gets WKWebView jettisoned right after "Download & load".
+      n_batch: 256,
+      // Quantize the K half of the KV cache (V must stay f16 — quantized V
+      // requires flash-attn, which the single-thread WASM build can't rely on).
+      cache_type_k: 'q8_0',
       progressCallback: ({ loaded, total }) => {
         const p = total ? loaded / total : 0
         onProgress?.({ progress: p, text: `Downloading weights ${Math.round(p * 100)}%` })

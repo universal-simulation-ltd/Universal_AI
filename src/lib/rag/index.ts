@@ -11,6 +11,7 @@ import { ensurePackLoaded, searchPack } from './pack'
 export * from './store'
 export * from './pack'
 export { webSearch } from './websearch'
+export { warmEmbeddings } from './embeddings'
 
 /** KB ids with this prefix are served by the in-memory pack, not IndexedDB. */
 export const BUILTIN_PREFIX = 'builtin:'

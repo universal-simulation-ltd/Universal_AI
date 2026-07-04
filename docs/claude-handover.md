@@ -2,6 +2,50 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (Fix on-device OOM: load-crash loop + RAG "no available backend found")
+
+Owner reported two on-device (iPhone/WASM) failures: (1) page crash right after
+"Download & load"; (2) after a few chat messages, the reply was replaced by
+`no available backend found. ERR: [wasm] RangeError: Out of memory`.
+
+### Diagnosis
+- Symptom 2 is **onnxruntime-web** (the MiniLM RAG embedder), NOT the chat
+  model: with a KB/pack enabled, `send()` → `retrieve()` → `embedOne()` inits
+  ORT **lazily mid-chat** — at peak memory, after wllama's heap + KV cache have
+  grown — and its WASM heap allocation fails. `send()` treated that as fatal,
+  and `embeddings.ts` cached the rejected pipeline promise forever.
+- Symptom 1: loading copies ~1GB of weights into the WASM heap; WKWebView
+  jettisons the page on the spike. On relaunch, startup **auto-loaded the same
+  model again → crash loop**. Also no error UI in Customise on load failure.
+
+### Fixes (all in this commit)
+- `stores.ts send()`: retrieval wrapped in try/catch — embedder failure now
+  degrades to an ungrounded answer instead of erroring the whole turn.
+- `rag/embeddings.ts`: rejected `extractorPromise` no longer cached (retry
+  works); new `warmEmbeddings()` (never throws).
+- Warm the embedder BEFORE the LLM eats memory: at startup when any KB is
+  enabled (awaited, ahead of auto-load), on `toggleKB` enable, and after
+  `installBuiltinPack` (also browser-caches weights while online).
+- `stores.ts loadModel()`: re-entrancy guard (status 'loading' → return) +
+  crash sentinel `localStorage['universal-ai:loading-model']` set before
+  `engine.load`, cleared on success/handled error. `consumeInterruptedLoad()`
+  reads+clears it at startup; `App.svelte` then **skips auto-load** and shows
+  "Loading X didn't finish last time — may have run out of memory…" instead of
+  crash-looping. Also `loadProgress` reset on load error.
+- `engine/wllama.ts`: `n_batch: 256` (default 2048 — compute buffers scale
+  with it; big peak-memory cut at load) and `cache_type_k: 'q8_0'` (K-cache
+  quant is safe without flash-attn; V stays f16). Both verified forwarded by
+  wllama 2.4.0.
+- `CustomiseView.svelte`: shows `$engineError` under the model section (was
+  silent on failure since model mgmt moved there).
+
+### State / verify
+- `svelte-check` 0/0, build green. Browser-verified: sentinel → skip auto-load
+  + error copy in Customise; clean relaunch auto-loads normally.
+- **Owner-to-verify on iPhone:** download → load no longer dies (n_batch cut),
+  and a KB-enabled chat survives past a few messages (or at worst answers
+  without sources). If load still dies, next lever: drop `n_ctx` to 1536.
+
 ## Update — 2026-07-04 (Long-press Retry on your own messages)
 
 Small UI addition. `svelte-check` 0 errors; dev server loads clean. Not exercised

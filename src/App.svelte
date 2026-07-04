@@ -12,17 +12,21 @@
     seedBuiltinKBs,
     loadPacksIntoMemory,
     loadModel,
+    consumeInterruptedLoad,
     kbs,
     saved,
     online,
     engineStatus,
+    engineError,
     modelId,
     downloadedModels,
     modelEverLoaded,
     clearChat,
   } from './lib/stores'
+  import { warmEmbeddings } from './lib/rag'
   import { get } from 'svelte/store'
   import { settings } from './lib/settings'
+  import { MODELS } from './lib/engine'
 
   let tab: 'chat' | 'saved' | 'knowledge' | 'customise' = $state('chat')
 
@@ -39,6 +43,20 @@
       await seedBuiltinKBs()
       loadPacksIntoMemory() // best-effort warm any previously installed packs
 
+      // If the previous session died mid-load (iOS jettisons the page when a
+      // model doesn't fit in memory), do NOT auto-load the same model again —
+      // that's an instant crash loop. Surface it and let the user choose.
+      const interrupted = consumeInterruptedLoad()
+      if (interrupted) {
+        const label = MODELS.find((m) => m.id === interrupted)?.label ?? 'the model'
+        engineStatus.set('error')
+        engineError.set(
+          `Loading ${label} didn't finish last time — the app may have run out ` +
+            'of memory. Try loading it again, or pick a smaller model.',
+        )
+        return
+      }
+
       // Auto-load a downloaded model so the app is ready without re-downloading,
       // and so it self-heals after an iOS WKWebView reload / backgrounding (which
       // resets the JS context and would otherwise leave the model "unloaded").
@@ -49,6 +67,9 @@
         const current = get(modelId)
         const target = dl[current] ? current : Object.keys(dl).find((id) => dl[id])
         if (target) {
+          // With retrieval in use, init the embedder BEFORE the LLM occupies
+          // most of the memory budget — lazy init mid-chat is what OOMs.
+          if (get(kbs).some((k) => k.enabled)) await warmEmbeddings()
           if (target !== current) modelId.set(target)
           void loadModel()
         }

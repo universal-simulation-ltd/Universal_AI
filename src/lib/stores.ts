@@ -21,6 +21,7 @@ import {
   loadPack,
   unloadPack,
   BUILTIN_PACKS,
+  warmEmbeddings,
   type KnowledgeBase,
   type RetrievedChunk,
 } from './rag'
@@ -116,6 +117,9 @@ export async function refreshKBs(): Promise<void> {
 export async function toggleKB(kb: KnowledgeBase): Promise<void> {
   await putKB({ ...kb, enabled: !kb.enabled })
   await refreshKBs()
+  // Turning a KB on means retrieval (and so the embedder) will be needed —
+  // init it now, while there's memory headroom, rather than mid-chat.
+  if (!kb.enabled) void warmEmbeddings()
 }
 
 export async function removeKB(kb: KnowledgeBase): Promise<void> {
@@ -212,6 +216,9 @@ export async function installBuiltinPack(id: string): Promise<void> {
     const row = get(kbs).find((k) => k.id === id)
     if (row) await putKB({ ...row, enabled: true })
     await refreshKBs()
+    // Pack installed + enabled → chats will retrieve from it; warm the embedder
+    // now (also gets its weights browser-cached while the device is online).
+    void warmEmbeddings()
   } finally {
     builtinDownloadProgress.update((p) => ({ ...p, [id]: null }))
   }
@@ -241,7 +248,38 @@ export async function uninstallBuiltinPack(id: string): Promise<void> {
   }
 }
 
+// Set just before a model load starts and cleared when it finishes (success or
+// handled error). If it's still present at next launch, the page DIED mid-load —
+// on iOS, WKWebView jettisons the whole page when the model doesn't fit in
+// memory. Startup checks this to avoid auto-loading straight into a crash loop.
+const LOAD_SENTINEL_KEY = 'universal-ai:loading-model'
+
+function clearLoadSentinel(): void {
+  try {
+    localStorage.removeItem(LOAD_SENTINEL_KEY)
+  } catch {
+    // storage unavailable — nothing to clear
+  }
+}
+
+/**
+ * Returns the id of a model whose load was interrupted by a page death last
+ * session (and clears the marker so the next attempt starts fresh), or null.
+ */
+export function consumeInterruptedLoad(): string | null {
+  try {
+    const id = localStorage.getItem(LOAD_SENTINEL_KEY)
+    if (id) localStorage.removeItem(LOAD_SENTINEL_KEY)
+    return id
+  } catch {
+    return null
+  }
+}
+
 export async function loadModel(): Promise<void> {
+  // Re-entrancy guard: startup auto-load and a user tap (or a double-tap) can
+  // race; loading the same weights twice doubles peak memory and can crash.
+  if (get(engineStatus) === 'loading') return
   engineStatus.set('loading')
   engineError.set(null)
   loadProgress.set({ progress: 0, text: 'Initializing…' })
@@ -249,7 +287,13 @@ export async function loadModel(): Promise<void> {
     if (!engine) engine = await createEngine()
     const model = MODELS.find((m) => m.id === get(modelId))
     if (!model) throw new Error('No model selected')
+    try {
+      localStorage.setItem(LOAD_SENTINEL_KEY, model.id)
+    } catch {
+      // storage unavailable — crash-loop protection just won't apply
+    }
     await engine.load(model, (p) => loadProgress.set(p))
+    clearLoadSentinel()
     engineStatus.set('ready')
     loadedModelId.set(model.id)
     downloadedModels.update((d) => ({ ...d, [model.id]: true }))
@@ -262,7 +306,9 @@ export async function loadModel(): Promise<void> {
     }
     modelEverLoaded.set(true)
   } catch (err) {
+    clearLoadSentinel() // JS survived — this was a handled failure, not a page death
     engineStatus.set('error')
+    loadProgress.set(null)
     engineError.set(err instanceof Error ? err.message : String(err))
   }
 }
@@ -364,9 +410,18 @@ export async function send(userText: string): Promise<void> {
     let confidence: Confidence | undefined
 
     // Gather candidate passages from local KBs and, if opted in + online, the web.
+    // Retrieval is best-effort: if the embedder can't run (its WASM heap can
+    // fail to allocate under memory pressure from the chat model — "no
+    // available backend found … Out of memory" — or its first fetch happens
+    // offline), answer ungrounded rather than failing the whole turn.
     const candidates: RetrievedChunk[] = []
-    if (enabled.length > 0) candidates.push(...(await retrieve(text, enabled, 4)))
-    if (cfg.webSearch && get(online)) candidates.push(...(await webSearch(text, 3)))
+    try {
+      if (enabled.length > 0) candidates.push(...(await retrieve(text, enabled, 4)))
+      if (cfg.webSearch && get(online)) candidates.push(...(await webSearch(text, 3)))
+    } catch (err) {
+      console.warn('Retrieval unavailable — answering without context:', err)
+      candidates.length = 0
+    }
 
     if (candidates.length > 0) {
       const relevant = candidates
