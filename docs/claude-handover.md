@@ -34,8 +34,8 @@ Opt-in "back up your settings with your Universal ID" shipped (commit
 ### The rest of the wiring (other repos)
 - **universal-platform `94dff3d`** — migration `0050_app_settings_backups.sql`
   (per-user × per-app jsonb, owner + platform-admin RLS, 64KB cap).
-  ⚠️ **NOT pushed to prod** (dry-run verified; `npx supabase db push` is the
-  owner step). Until then Back up/Restore fail server-side (sign-in works).
+  ✅ **PUSHED TO PROD** (owner OK'd same session; `migration list` shows 0050
+  Local=Remote). Back up/Restore are live server-side.
 - **unisim-central PR #34** (open, checks green, awaiting owner merge) —
   god-mode gains an "Apps" view tab with a Settings-backups card (email lookup
   → per-app rows → confirm-gated delete).
