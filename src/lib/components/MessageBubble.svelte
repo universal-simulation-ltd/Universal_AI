@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { saved, saveResponse, unsaveResponse, type UIMessage, type Confidence } from '../stores'
+  import { saved, saveResponse, unsaveResponse, send, type UIMessage, type Confidence } from '../stores'
   let { msg }: { msg: UIMessage } = $props()
 
-  // --- Long-press to save --------------------------------------------------
+  // --- Long-press menu -----------------------------------------------------
   let menuOpen = $state(false)
   let pressTimer: ReturnType<typeof setTimeout> | null = null
   let startX = 0
@@ -10,6 +10,9 @@
 
   let isSaved = $derived($saved.some((s) => s.id === msg.id))
   let canSave = $derived(msg.role === 'assistant' && !!msg.content && !msg.streaming)
+  // Your own turns can be resent — long-press → Retry submits them again.
+  let canRetry = $derived(msg.role === 'user' && !!msg.content)
+  let hasMenu = $derived(canSave || canRetry)
 
   function cancelPress() {
     if (pressTimer) {
@@ -18,7 +21,7 @@
     }
   }
   function startPress(e: PointerEvent) {
-    if (!canSave) return
+    if (!hasMenu) return
     // Don't hijack presses on the interactive bits (citations, source links).
     if ((e.target as HTMLElement).closest('button, a')) return
     startX = e.clientX
@@ -36,7 +39,7 @@
     }
   }
   function openMenu(e: Event) {
-    if (!canSave) return
+    if (!hasMenu) return
     e.preventDefault() // right-click / iOS callout → our menu instead
     menuOpen = true
   }
@@ -44,6 +47,11 @@
     if (isSaved) unsaveResponse(msg.id)
     else saveResponse(msg)
     menuOpen = false
+  }
+  function retry() {
+    menuOpen = false
+    // send() no-ops if a turn is already generating or the engine isn't ready.
+    send(msg.content)
   }
   async function copyText() {
     try {
@@ -106,7 +114,7 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="bubble {msg.role}"
-    class:saveable={canSave}
+    class:saveable={hasMenu}
     onpointerdown={startPress}
     onpointerup={cancelPress}
     onpointermove={maybeCancel}
@@ -168,9 +176,14 @@
     {#if menuOpen}
       <button class="menu-backdrop" aria-label="Close menu" onclick={() => (menuOpen = false)}></button>
       <div class="pop" role="menu">
-        <button role="menuitem" onclick={toggleSave}>
-          {isSaved ? '★ Remove from saved' : '☆ Save response'}
-        </button>
+        {#if canRetry}
+          <button role="menuitem" onclick={retry}>↻ Retry</button>
+        {/if}
+        {#if canSave}
+          <button role="menuitem" onclick={toggleSave}>
+            {isSaved ? '★ Remove from saved' : '☆ Save response'}
+          </button>
+        {/if}
         <button role="menuitem" onclick={copyText}>⧉ Copy text</button>
       </div>
     {/if}
@@ -190,8 +203,8 @@
     word-break: break-word;
     line-height: 1.45;
   }
-  /* Assistant bubbles are long-pressable to save; suppress the iOS text-selection
-     callout so the press reliably opens our own menu (Copy is offered instead). */
+  /* Long-pressable bubbles suppress the iOS text-selection callout so the press
+     reliably opens our own menu (Copy is offered instead). */
   .bubble.saveable {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -231,6 +244,9 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
     overflow: hidden;
   }
+  /* User bubbles hug the right edge — anchor their menu there so it doesn't
+     spill off-screen. */
+  .bubble.user .pop { left: auto; right: 0; }
   .pop button {
     text-align: left;
     background: transparent;

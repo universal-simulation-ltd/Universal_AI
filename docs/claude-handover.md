@@ -2,6 +2,25 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (Long-press Retry on your own messages)
+
+Small UI addition. `svelte-check` 0 errors; dev server loads clean. Not exercised
+end-to-end in preview (needs a loaded on-device model), logic reuses `send()`.
+
+- **`MessageBubble.svelte`**: the long-press / right-click menu (previously
+  assistant-only, gated by `canSave`) now also opens on **user** bubbles.
+  - New deriveds: `canRetry` (non-empty user message) and `hasMenu = canSave ||
+    canRetry`; the press-timer + `contextmenu` handlers and the callout-suppressing
+    `.saveable` class now key off `hasMenu`.
+  - New `retry()` → closes menu, calls `send(msg.content)` (which already no-ops if a
+    turn is generating or the engine isn't ready). It appends a fresh user turn +
+    reply at the bottom — it does **not** edit in place or regenerate the prior reply.
+  - Menu items: **↻ Retry** on user messages, **Save response** on assistant, **Copy
+    text** on both. User bubbles anchor the popup to the right (`.bubble.user .pop`)
+    so it doesn't spill off-screen.
+- Possible follow-ups if desired: edit-and-resend, or regenerate-the-reply instead
+  of re-appending.
+
 ## Update — 2026-07-04 (Saved tab + model management moved to Customise + delete)
 
 Four UI/UX changes. `svelte-check` 0 errors, web build green; browser-verified.
