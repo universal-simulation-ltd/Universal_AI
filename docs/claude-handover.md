@@ -36,9 +36,9 @@ Opt-in "back up your settings with your Universal ID" shipped (commit
   (per-user × per-app jsonb, owner + platform-admin RLS, 64KB cap).
   ✅ **PUSHED TO PROD** (owner OK'd same session; `migration list` shows 0050
   Local=Remote). Back up/Restore are live server-side.
-- **unisim-central PR #34** (open, checks green, awaiting owner merge) —
-  god-mode gains an "Apps" view tab with a Settings-backups card (email lookup
-  → per-app rows → confirm-gated delete).
+- **unisim-central PR #34** — ✅ squash-merged (`fc45166`; Pages auto-deploys
+  app.unisim.co.uk): god-mode gains an "Apps" view tab with a Settings-backups
+  card (email lookup → per-app rows → confirm-gated delete).
 - Suite changelog `2026.07.04.13`.
 
 ### Verified / owner-to-verify
