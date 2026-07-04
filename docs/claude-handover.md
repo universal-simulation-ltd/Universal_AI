@@ -17,6 +17,11 @@ can be tested and deployed via Xcode. All merged to `main` in this commit.
   `.xcworkspace`**; open `App.xcodeproj`. Capacitor's `ios/.gitignore` excludes the
   regenerable bits (`App/App/public`, build, Pods, `capacitor.config.json`), so
   only the source project is tracked.
+- **App icon set** — replaced Capacitor's default `AppIcon-512@2x.png` (1024×1024,
+  no alpha) with the Universal AI brand glyph (rendered from
+  `public/icons/icon.svg` via `sharp`, full-bleed square, no rounded corners since
+  iOS masks its own). To regenerate: render the glyph SVG to a 1024² PNG and
+  overwrite that file.
 - **Fixed a pre-existing build break** in `src/lib/stores.ts` — `SYSTEM_BASE` /
   `SAFE_MODE_ADDON` had smart-quotes (`‘ ’`) instead of straight quotes; `main`
   did not build until this fix.
