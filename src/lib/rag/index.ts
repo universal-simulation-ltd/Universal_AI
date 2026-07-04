@@ -105,20 +105,21 @@ export interface RetrievedChunk {
 
 /**
  * Top-k cosine retrieval across the given (enabled) KBs. KB ids prefixed with
- * `builtin:` are served by the in-memory pack (Simple Wikipedia); the rest come
- * from IndexedDB. Both candidate sets are merged and the global top-k returned,
- * so callers (send/buildContext) need no knowledge of where a chunk came from.
+ * `builtin:` are served by in-memory pre-built packs (e.g. Simple Wikipedia, the
+ * WSET-style wine pack); the rest come from IndexedDB. All candidate sets are
+ * merged and the global top-k returned, so callers (send/buildContext) need no
+ * knowledge of where a chunk came from.
  */
 export async function retrieve(
   query: string,
   kbIds: string[],
   k = 4,
 ): Promise<RetrievedChunk[]> {
-  const usePack = kbIds.some((id) => id.startsWith(BUILTIN_PREFIX))
+  const packIds = kbIds.filter((id) => id.startsWith(BUILTIN_PREFIX))
   const regularIds = kbIds.filter((id) => !id.startsWith(BUILTIN_PREFIX))
 
   const pool = regularIds.length > 0 ? await getChunksFor(regularIds) : []
-  if (pool.length === 0 && !usePack) return []
+  if (pool.length === 0 && packIds.length === 0) return []
 
   const q = await embedOne(query)
   const scored: RetrievedChunk[] = pool.map((c) => ({
@@ -127,9 +128,9 @@ export async function retrieve(
     score: cosine(q, c.embedding),
   }))
 
-  if (usePack) {
-    await ensurePackLoaded()
-    scored.push(...searchPack(q, k))
+  for (const id of packIds) {
+    await ensurePackLoaded(id)
+    scored.push(...searchPack(id, q, k))
   }
 
   scored.sort((a, b) => b.score - a.score)

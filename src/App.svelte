@@ -8,8 +8,8 @@
   import {
     refreshKBs,
     detectCapabilities,
-    seedBuiltinKB,
-    loadPackIntoMemory,
+    seedBuiltinKBs,
+    loadPacksIntoMemory,
     loadModel,
     kbs,
     online,
@@ -31,8 +31,8 @@
       void $settings
       await refreshKBs()
       await detectCapabilities()
-      await seedBuiltinKB()
-      loadPackIntoMemory() // best-effort warm if previously installed
+      await seedBuiltinKBs()
+      loadPacksIntoMemory() // best-effort warm any previously installed packs
 
       // Auto-reload the model if this device has loaded one before. The weights are
       // cached, so this re-initialises without re-downloading. Without it, anything

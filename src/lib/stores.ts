@@ -20,6 +20,7 @@ import {
   fetchManifest,
   loadPack,
   unloadPack,
+  BUILTIN_PACKS,
   type KnowledgeBase,
   type RetrievedChunk,
 } from './rag'
@@ -112,95 +113,119 @@ export async function removeKB(kb: KnowledgeBase): Promise<void> {
   // The built-in pack isn't stored in IndexedDB chunks; "removing" it means
   // uninstalling the downloaded binary, not deleting a chunk set.
   if (kb.id.startsWith(BUILTIN_PREFIX)) {
-    await uninstallBuiltinPack()
+    await uninstallBuiltinPack(kb.id)
     return
   }
   await deleteKBRecord(kb.id)
   await refreshKBs()
 }
 
-// --- Built-in "general knowledge" pack (Simple Wikipedia) ----------------
+// --- Built-in, pre-embedded knowledge packs ------------------------------
+// The app ships several ready-made packs (Simple Wikipedia; a WSET-style wine
+// pack). Each is seeded as a KB row so it shows in the Knowledge list, is
+// downloaded on demand, and is searched from memory. All state is keyed by pack
+// id (see BUILTIN_PACKS in rag/pack.ts) so multiple packs coexist independently.
 const BUILTIN_PREFIX = 'builtin:'
-export const BUILTIN_SIMPLEWIKI_ID = 'builtin:simplewiki'
-const INSTALL_KEY = 'builtin:simplewiki:installed'
+const installKey = (id: string) => `${id}:installed`
 
-/** Whether the pack binary has been downloaded/cached on this device. */
-export const builtinInstalled = writable<boolean>(
-  typeof localStorage !== 'undefined' && localStorage.getItem(INSTALL_KEY) === '1',
-)
-/** Download progress 0..1 while installing, or null when idle. */
-export const builtinDownloadProgress = writable<number | null>(null)
+function readInstalled(): Record<string, boolean> {
+  const rec: Record<string, boolean> = {}
+  for (const p of BUILTIN_PACKS) {
+    rec[p.id] =
+      typeof localStorage !== 'undefined' && localStorage.getItem(installKey(p.id)) === '1'
+  }
+  return rec
+}
+
+/** Per-pack: whether that pack's binary has been downloaded/cached on device. */
+export const builtinInstalled = writable<Record<string, boolean>>(readInstalled())
+/** Per-pack download progress 0..1 while installing, or null when idle. */
+export const builtinDownloadProgress = writable<Record<string, number | null>>({})
 
 /**
- * Ensure a metadata row exists for the built-in pack so it appears in the
- * Knowledge list (even before download). Best-effort: silently no-ops if the
- * pack assets aren't present. Idempotent — never resets the user's enabled flag.
+ * Ensure a KB row exists for every built-in pack so they appear in the Knowledge
+ * list (even before download). Best-effort per pack: silently skips any whose
+ * assets aren't present. Idempotent — never resets the user's enabled flag.
  */
-export async function seedBuiltinKB(): Promise<void> {
-  try {
-    const existing = get(kbs).find((k) => k.id === BUILTIN_SIMPLEWIKI_ID)
-    const manifest = await fetchManifest()
-    if (existing) {
-      // Keep chunkCount/name fresh if the pack version changed; preserve enabled.
-      if (existing.chunkCount !== manifest.count || existing.name !== manifest.name) {
-        await putKB({ ...existing, name: manifest.name, chunkCount: manifest.count })
-        await refreshKBs()
+export async function seedBuiltinKBs(): Promise<void> {
+  for (const def of BUILTIN_PACKS) {
+    try {
+      const manifest = await fetchManifest(def.id)
+      const existing = get(kbs).find((k) => k.id === def.id)
+      if (existing) {
+        // Keep chunkCount/name fresh if the pack version changed; preserve enabled.
+        if (existing.chunkCount !== manifest.count || existing.name !== manifest.name) {
+          await putKB({ ...existing, name: manifest.name, chunkCount: manifest.count })
+          await refreshKBs()
+        }
+        continue
       }
-      return
+      await putKB({
+        id: def.id,
+        name: manifest.name,
+        enabled: false,
+        chunkCount: manifest.count,
+        createdAt: 0, // sort built-in packs to the top of the list
+      })
+      await refreshKBs()
+    } catch {
+      // No assets for this pack — skip it.
     }
-    await putKB({
-      id: BUILTIN_SIMPLEWIKI_ID,
-      name: manifest.name,
-      enabled: false,
-      chunkCount: manifest.count,
-      createdAt: 0, // sort to the top of the list
-    })
-    await refreshKBs()
-  } catch {
-    // No pack assets available — nothing to seed.
   }
 }
 
-/** Warm the pack into memory on startup if it was previously installed. */
-export async function loadPackIntoMemory(): Promise<void> {
-  if (!get(builtinInstalled)) return
-  try {
-    await loadPack()
-  } catch {
-    // Cached binary missing/corrupt — leave it; install can re-fetch.
+/** Warm any previously installed packs into memory on startup. */
+export async function loadPacksIntoMemory(): Promise<void> {
+  const installed = get(builtinInstalled)
+  for (const def of BUILTIN_PACKS) {
+    if (!installed[def.id]) continue
+    try {
+      await loadPack(def.id)
+    } catch {
+      // Cached binary missing/corrupt — leave it; install can re-fetch.
+    }
   }
 }
 
-/** Download + cache the pack, then enable it for retrieval. */
-export async function installBuiltinPack(): Promise<void> {
-  builtinDownloadProgress.set(0)
+/** Download + cache a built-in pack, then enable it for retrieval. */
+export async function installBuiltinPack(id: string): Promise<void> {
+  builtinDownloadProgress.update((p) => ({ ...p, [id]: 0 }))
   try {
-    await loadPack((loaded, total) =>
-      builtinDownloadProgress.set(total > 0 ? loaded / total : 0),
+    await loadPack(id, (loaded, total) =>
+      builtinDownloadProgress.update((p) => ({ ...p, [id]: total > 0 ? loaded / total : 0 })),
     )
-    localStorage.setItem(INSTALL_KEY, '1')
-    builtinInstalled.set(true)
-    const row = get(kbs).find((k) => k.id === BUILTIN_SIMPLEWIKI_ID)
+    try {
+      localStorage.setItem(installKey(id), '1')
+    } catch {
+      // storage unavailable — pack still works for this session
+    }
+    builtinInstalled.update((s) => ({ ...s, [id]: true }))
+    const row = get(kbs).find((k) => k.id === id)
     if (row) await putKB({ ...row, enabled: true })
     await refreshKBs()
   } finally {
-    builtinDownloadProgress.set(null)
+    builtinDownloadProgress.update((p) => ({ ...p, [id]: null }))
   }
 }
 
-/** Free the cached binary and disable the pack. */
-export async function uninstallBuiltinPack(): Promise<void> {
-  localStorage.removeItem(INSTALL_KEY)
-  builtinInstalled.set(false)
-  unloadPack()
-  const row = get(kbs).find((k) => k.id === BUILTIN_SIMPLEWIKI_ID)
+/** Free a built-in pack's cached binary and disable it. */
+export async function uninstallBuiltinPack(id: string): Promise<void> {
+  try {
+    localStorage.removeItem(installKey(id))
+  } catch {
+    // storage unavailable — ignore
+  }
+  builtinInstalled.update((s) => ({ ...s, [id]: false }))
+  unloadPack(id)
+  const row = get(kbs).find((k) => k.id === id)
   if (row) await putKB({ ...row, enabled: false })
   await refreshKBs()
-  // Best-effort eviction of the service-worker cache entry.
+  // Best-effort eviction of this pack's service-worker cache entry.
   try {
+    const manifest = await fetchManifest(id)
     const cache = await caches.open('knowledge-packs')
     for (const req of await cache.keys()) {
-      if (req.url.includes('/knowledge/')) await cache.delete(req)
+      if (req.url.includes(manifest.bin)) await cache.delete(req)
     }
   } catch {
     // Cache API unavailable (e.g. dev without SW) — ignore.

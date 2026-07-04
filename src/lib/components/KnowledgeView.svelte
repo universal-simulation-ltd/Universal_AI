@@ -1,12 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { ingestDocument, fetchManifest } from '../rag'
+  import { ingestDocument, fetchManifest, BUILTIN_PACKS, BUILTIN_PREFIX, type PackManifest } from '../rag'
   import {
     kbs,
     refreshKBs,
     toggleKB,
     removeKB,
-    BUILTIN_SIMPLEWIKI_ID,
     builtinInstalled,
     builtinDownloadProgress,
     installBuiltinPack,
@@ -18,21 +17,24 @@
   let progress = $state<{ done: number; total: number } | null>(null)
   let error = $state<string | null>(null)
 
-  let packMB = $state<number | null>(null)
-  let packError = $state<string | null>(null)
+  // Manifests + per-pack download errors, keyed by built-in pack id.
+  let manifests = $state<Record<string, PackManifest>>({})
+  let packError = $state<Record<string, string | null>>({})
 
   onMount(() => {
-    fetchManifest()
-      .then((m) => (packMB = m.approxMB))
-      .catch(() => {}) // pack not built/available — card just won't show a size
+    for (const def of BUILTIN_PACKS) {
+      fetchManifest(def.id)
+        .then((m) => (manifests = { ...manifests, [def.id]: m }))
+        .catch(() => {}) // pack not built/available — its card just won't show a size
+    }
   })
 
-  async function downloadPack() {
-    packError = null
+  async function downloadPack(id: string) {
+    packError = { ...packError, [id]: null }
     try {
-      await installBuiltinPack()
+      await installBuiltinPack(id)
     } catch (err) {
-      packError = err instanceof Error ? err.message : String(err)
+      packError = { ...packError, [id]: err instanceof Error ? err.message : String(err) }
     }
   }
 
@@ -110,9 +112,13 @@
       <p class="muted">None yet. Add some above to ground answers.</p>
     {:else}
       {#each $kbs as kb (kb.id)}
-        {#if kb.id === BUILTIN_SIMPLEWIKI_ID}
-          <div class="kb builtin" class:on={kb.enabled && $builtinInstalled}>
-            {#if $builtinInstalled && $builtinDownloadProgress === null}
+        {#if kb.id.startsWith(BUILTIN_PREFIX)}
+          {@const prog = $builtinDownloadProgress[kb.id]}
+          {@const installed = $builtinInstalled[kb.id]}
+          {@const m = manifests[kb.id]}
+          {@const unit = m?.unit ?? 'entries'}
+          <div class="kb builtin" class:on={kb.enabled && installed}>
+            {#if installed && prog == null}
               <label class="toggle">
                 <input type="checkbox" checked={kb.enabled} onchange={() => toggleKB(kb)} />
                 <span></span>
@@ -120,30 +126,30 @@
             {/if}
             <div class="meta">
               <div class="kbname">📚 {kb.name}</div>
-              {#if $builtinDownloadProgress !== null}
+              {#if prog != null}
                 <div class="muted small">
-                  Downloading… {Math.round($builtinDownloadProgress * 100)}%
+                  Downloading… {Math.round(prog * 100)}%
                 </div>
-                <progress max="1" value={$builtinDownloadProgress}></progress>
-              {:else if $builtinInstalled}
-                <div class="muted small">{kb.chunkCount.toLocaleString()} articles · on-device</div>
+                <progress max="1" value={prog}></progress>
+              {:else if installed}
+                <div class="muted small">{kb.chunkCount.toLocaleString()} {unit} · on-device</div>
               {:else}
                 <div class="muted small">
-                  {kb.chunkCount.toLocaleString()} articles · cite general knowledge offline
+                  {kb.chunkCount.toLocaleString()} {unit} · {m?.description ?? 'cite offline'}
                 </div>
               {/if}
             </div>
-            {#if $builtinDownloadProgress !== null}
+            {#if prog != null}
               <!-- controls hidden while downloading -->
-            {:else if $builtinInstalled}
+            {:else if installed}
               <button class="del" title="Remove download" onclick={() => removeKB(kb)}>🗑</button>
             {:else}
-              <button class="primary dl" onclick={downloadPack}>
-                Download{#if packMB}&nbsp;(~{packMB}&nbsp;MB){/if}
+              <button class="primary dl" onclick={() => downloadPack(kb.id)}>
+                Download{#if m?.approxMB}&nbsp;(~{m.approxMB}&nbsp;MB){/if}
               </button>
             {/if}
           </div>
-          {#if packError}<p class="err">{packError}</p>{/if}
+          {#if packError[kb.id]}<p class="err">{packError[kb.id]}</p>{/if}
         {:else}
           <div class="kb" class:on={kb.enabled}>
             <label class="toggle">

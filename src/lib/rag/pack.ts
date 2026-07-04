@@ -26,14 +26,38 @@ export interface PackManifest {
   bin: string
   dim: number
   count: number
+  /** Noun for the count shown in the UI ("142 articles" / "112 topics"). */
+  unit?: string
+  /** Optional one-line description shown on the pack card. */
+  description?: string
   scale: number
   bytes: number
   approxMB: number
 }
 
 const KNOWLEDGE_BASE = '/knowledge/'
-/** Bump alongside the pack version produced by the build script. */
-export const MANIFEST_URL = `${KNOWLEDGE_BASE}simplewiki.v1.json`
+
+/** A built-in, pre-embedded knowledge pack that ships with the app. */
+export interface BuiltinPackDef {
+  id: string
+  manifestUrl: string
+}
+
+/**
+ * The built-in packs the app knows how to seed, download and search. Each entry
+ * points at a manifest produced by scripts/build-knowledge-pack.mjs. Bump the
+ * versioned filename here alongside the pack version when rebuilding.
+ */
+export const BUILTIN_PACKS: BuiltinPackDef[] = [
+  { id: 'builtin:simplewiki', manifestUrl: `${KNOWLEDGE_BASE}simplewiki.v1.json` },
+  { id: 'builtin:wset-wine', manifestUrl: `${KNOWLEDGE_BASE}wset-wine.v1.json` },
+]
+
+function manifestUrlFor(id: string): string {
+  const def = BUILTIN_PACKS.find((p) => p.id === id)
+  if (!def) throw new Error(`Unknown built-in pack: ${id}`)
+  return def.manifestUrl
+}
 
 interface LoadedPack {
   count: number
@@ -44,23 +68,26 @@ interface LoadedPack {
   texts: string[]
 }
 
-let pack: LoadedPack | null = null
-let loadPromise: Promise<void> | null = null
-let manifestPromise: Promise<PackManifest> | null = null
+// Keyed by pack id so multiple built-in packs can be loaded/searched at once.
+const packs = new Map<string, LoadedPack>()
+const loadPromises = new Map<string, Promise<void>>()
+const manifestPromises = new Map<string, Promise<PackManifest>>()
 
-export function isPackLoaded(): boolean {
-  return pack !== null
+export function isPackLoaded(id: string): boolean {
+  return packs.has(id)
 }
 
-/** Fetch (and memoize) the pack manifest — used by the UI before download. */
-export function fetchManifest(): Promise<PackManifest> {
-  if (!manifestPromise) {
-    manifestPromise = fetch(MANIFEST_URL).then((res) => {
+/** Fetch (and memoize) a pack's manifest — used by the UI before download. */
+export function fetchManifest(id: string): Promise<PackManifest> {
+  let p = manifestPromises.get(id)
+  if (!p) {
+    p = fetch(manifestUrlFor(id)).then((res) => {
       if (!res.ok) throw new Error(`Knowledge manifest ${res.status}`)
       return res.json() as Promise<PackManifest>
     })
+    manifestPromises.set(id, p)
   }
-  return manifestPromise
+  return p
 }
 
 function decodePack(buf: ArrayBuffer): LoadedPack {
@@ -96,12 +123,16 @@ function decodePack(buf: ArrayBuffer): LoadedPack {
   return { count, dim, invScale: 1 / scale, emb, titles, texts }
 }
 
-/** Download + decode the pack into memory. Idempotent / coalesces callers. */
-export function loadPack(onProgress?: (loaded: number, total: number) => void): Promise<void> {
-  if (pack) return Promise.resolve()
-  if (loadPromise) return loadPromise
-  loadPromise = (async () => {
-    const manifest = await fetchManifest()
+/** Download + decode a pack into memory. Idempotent / coalesces callers. */
+export function loadPack(
+  id: string,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<void> {
+  if (packs.has(id)) return Promise.resolve()
+  const existing = loadPromises.get(id)
+  if (existing) return existing
+  const promise = (async () => {
+    const manifest = await fetchManifest(id)
     const url = `${KNOWLEDGE_BASE}${manifest.bin}`
     const res = await fetch(url)
     if (!res.ok || !res.body) throw new Error(`Knowledge pack ${res.status}`)
@@ -122,28 +153,30 @@ export function loadPack(onProgress?: (loaded: number, total: number) => void): 
       blob.set(p, off)
       off += p.length
     }
-    pack = decodePack(blob.buffer)
+    packs.set(id, decodePack(blob.buffer))
   })().finally(() => {
-    loadPromise = null
+    loadPromises.delete(id)
   })
-  return loadPromise
+  loadPromises.set(id, promise)
+  return promise
 }
 
-/** Load the pack if it isn't already in memory (no progress reporting). */
-export async function ensurePackLoaded(): Promise<void> {
-  if (!pack) await loadPack()
+/** Load a pack if it isn't already in memory (no progress reporting). */
+export async function ensurePackLoaded(id: string): Promise<void> {
+  if (!packs.has(id)) await loadPack(id)
 }
 
-export function unloadPack(): void {
-  pack = null
+export function unloadPack(id: string): void {
+  packs.delete(id)
 }
 
 /**
- * Brute-force top-k over the int8 pack. The query is L2-normalized (from the
+ * Brute-force top-k over one int8 pack. The query is L2-normalized (from the
  * same model), so cosine == dot product; scoring the dequantized vectors is
  * just `(Σ q·qi) / scale`. Maintains a fixed-size top-k to avoid sorting N.
  */
-export function searchPack(q: Float32Array, k: number): RetrievedChunk[] {
+export function searchPack(id: string, q: Float32Array, k: number): RetrievedChunk[] {
+  const pack = packs.get(id)
   if (!pack) return []
   const { count, dim, emb, invScale, titles, texts } = pack
   // Parallel arrays for the current top-k, ascending by score.

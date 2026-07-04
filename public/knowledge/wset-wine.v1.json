@@ -1,0 +1,13 @@
+{
+  "id": "builtin:wset-wine",
+  "name": "Wine knowledge (WSET-style)",
+  "version": 1,
+  "bin": "wset-wine.v1.bin",
+  "dim": 384,
+  "count": 112,
+  "unit": "topics",
+  "description": "Grapes, regions, tasting, winemaking & service",
+  "scale": 127,
+  "bytes": 87426,
+  "approxMB": 0.1
+}

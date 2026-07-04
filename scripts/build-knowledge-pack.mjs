@@ -51,6 +51,15 @@ const MIN_LEN = Number(args.minLen ?? 120) // skip stubs/disambiguation
 const MAX_CHARS = 700 // one intro chunk per article (context-budget friendly)
 const OUT_DIR = resolve(ROOT, 'public/knowledge')
 
+// Pack identity — defaults reproduce the original Simple Wikipedia pack, but any
+// custom corpus (e.g. the WSET-style wine pack) can override these so multiple
+// built-in packs can ship side by side.
+const PACK_ID = String(args.id ?? 'builtin:simplewiki')
+const PACK_NAME = String(args.name ?? 'General knowledge (Simple Wikipedia)')
+const PACK_OUT = String(args.out ?? 'simplewiki') // base filename (no extension)
+const PACK_UNIT = String(args.unit ?? 'articles') // shown in the UI ("142 entries")
+const PACK_DESC = args.desc ? String(args.desc) : null
+
 const MODEL_ID = 'Xenova/all-MiniLM-L6-v2'
 const EMBED_DIM = 384
 const SCALE = 127
@@ -287,17 +296,19 @@ async function main() {
   const buf = pack(items, quant)
 
   await mkdir(OUT_DIR, { recursive: true })
-  const binName = `simplewiki.v${VERSION}.bin`
-  const jsonName = `simplewiki.v${VERSION}.json`
+  const binName = `${PACK_OUT}.v${VERSION}.bin`
+  const jsonName = `${PACK_OUT}.v${VERSION}.json`
   await writeFile(resolve(OUT_DIR, binName), Buffer.from(buf))
 
   const manifest = {
-    id: 'builtin:simplewiki',
-    name: 'General knowledge (Simple Wikipedia)',
+    id: PACK_ID,
+    name: PACK_NAME,
     version: VERSION,
     bin: binName,
     dim: EMBED_DIM,
     count: items.length,
+    unit: PACK_UNIT,
+    ...(PACK_DESC ? { description: PACK_DESC } : {}),
     scale: SCALE,
     bytes: buf.byteLength,
     approxMB: Math.round((buf.byteLength / (1024 * 1024)) * 10) / 10,

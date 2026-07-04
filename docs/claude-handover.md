@@ -2,6 +2,51 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (WSET-style wine knowledge pack + multi-pack support)
+
+Added a second built-in knowledge pack and generalised the built-in-pack system
+(it was hardwired to the single Simple Wikipedia pack).
+
+### New pack
+- `scripts/data/wset-wine.jsonl` — 112 **original** factual wine entries covering
+  WSET-syllabus topics (tasting/structure, ~30 grapes, regions, winemaking,
+  service, faults, label/classification). **IP note:** written from scratch as
+  general wine facts — deliberately NOT WSET's copyrighted materials or their
+  Systematic Approach to Tasting® text. KB display name: "Wine knowledge
+  (WSET-style)".
+- Built with `node scripts/build-knowledge-pack.mjs --source=jsonl
+  --input=scripts/data/wset-wine.jsonl --id=builtin:wset-wine --out=wset-wine
+  --name="Wine knowledge (WSET-style)" --unit=topics --desc="..."` →
+  `public/knowledge/wset-wine.v1.{bin,json}` (0.1 MB, LFS-tracked like simplewiki).
+- Retrieval sanity-checked offline: wine queries (Chablis grape, tannin, noble
+  rot, Champagne bubbles, serving temp) all return the correct topic as top hit
+  (scores 0.63–0.78).
+
+### Multi-pack generalisation (was single-pack)
+- `scripts/build-knowledge-pack.mjs`: new `--id/--name/--out/--unit/--desc` args
+  (defaults reproduce the simplewiki pack); manifest now carries `unit` +
+  optional `description`.
+- `src/lib/rag/pack.ts`: replaced the single `pack`/`MANIFEST_URL` with a
+  `BUILTIN_PACKS` registry and per-id maps; `fetchManifest/loadPack/
+  ensurePackLoaded/unloadPack/searchPack/isPackLoaded` now all take a pack `id`.
+- `src/lib/rag/index.ts` `retrieve()`: loops over every enabled `builtin:` id and
+  merges results (was: one pack for any builtin id).
+- `src/lib/stores.ts`: `builtinInstalled`/`builtinDownloadProgress` are now
+  `Record<packId, …>`; `seedBuiltinKBs()` / `loadPacksIntoMemory()` /
+  `installBuiltinPack(id)` / `uninstallBuiltinPack(id)` iterate the registry.
+  Removed `BUILTIN_SIMPLEWIKI_ID`.
+- `KnowledgeView.svelte`: renders any `builtin:` KB from its manifest (name, unit,
+  description, size), per-pack download/progress/error state.
+- `App.svelte`: calls `seedBuiltinKBs()` / `loadPacksIntoMemory()`.
+
+### Verified
+- `svelte-check` 0 errors; web build + `cap sync` + `xcodebuild` simulator all
+  green. In-browser: both pack cards list, the wine pack downloads → "on-device"
+  → toggles on → install flag persists, console clean.
+- **Owner-to-verify:** end-to-end grounded answer on-device (needs the LLM loaded
+  + wine pack enabled). Adding more entries = append to the .jsonl and rebuild
+  (bump `--version` and the filename in `BUILTIN_PACKS` if the schema changes).
+
 ## Update — 2026-07-04 (Top-bar scroll + model "randomly unloads" fix)
 
 Two device-reported issues after the app launched successfully on iOS.
