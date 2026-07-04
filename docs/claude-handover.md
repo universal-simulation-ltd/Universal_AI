@@ -2,6 +2,43 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (Capacitor iOS wrap for Xcode testing)
+
+Wrapped the PWA in Capacitor to get a native iOS shell / Xcode project so the app
+can be tested and deployed via Xcode. All merged to `main` in this commit.
+
+### What shipped
+- **Capacitor added** — `@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`
+  (devDeps). `capacitor.config.ts`: appId `ltd.universalsimulation.ai`, appName
+  "Universal AI", `webDir: 'dist'`. **appId is a placeholder** — change it if a
+  real bundle ID / Apple Team is used for device signing.
+- **`ios/` platform generated** — `ios/App/App.xcodeproj`. Capacitor 7 uses
+  **Swift Package Manager** for plugins (`Package.swift`), so there is **no
+  `.xcworkspace`**; open `App.xcodeproj`. Capacitor's `ios/.gitignore` excludes the
+  regenerable bits (`App/App/public`, build, Pods, `capacitor.config.json`), so
+  only the source project is tracked.
+- **Fixed a pre-existing build break** in `src/lib/stores.ts` — `SYSTEM_BASE` /
+  `SAFE_MODE_ADDON` had smart-quotes (`‘ ’`) instead of straight quotes; `main`
+  did not build until this fix.
+- **CocoaPods 1.16.2** installed via Homebrew (local toolchain, not a repo change).
+
+### Verified
+- `npm run build` green; `xcodebuild -sdk iphonesimulator ... build` → **BUILD
+  SUCCEEDED**. Native shell compiles cleanly.
+
+### Not yet verified / the real risk
+- **Whether the LLM engine runs inside WKWebView is UNCONFIRMED.** WebGPU (WebLLM)
+  has historically been gated off in WKWebView, and the wllama WASM-threads path
+  needs cross-origin isolation that `vite.config.ts` intentionally disables. Expect
+  the UI to load but the model may fail to initialize on-device. First launch on a
+  simulator/device is owner-to-verify. If the model fails: try forcing wllama
+  single-thread, or investigate a WebGPU entitlement.
+
+### Rebuild/sync workflow
+- After web changes: `npm run build && npx cap sync ios` (needs
+  `PATH=/opt/homebrew/bin:$PATH` and `LANG=en_US.UTF-8` for CocoaPods), then Run in
+  Xcode. `npx cap open ios` reopens the project.
+
 ## Update — 2026-06-27 (First-run gate, Customise tab, connection light, answer-first sources, confidence, opt-in web search)
 
 Shipped the five Universal AI backlog items in one pass. `svelte-check` clean (0
