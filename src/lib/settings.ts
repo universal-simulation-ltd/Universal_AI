@@ -55,6 +55,12 @@ function load(): Settings {
 
 export const settings = writable<Settings>(load())
 
+// Declared before the subscribe below, which fires synchronously on creation and
+// calls applyTheme() → reads mediaQuery. If this `let` sat after the subscribe,
+// that first call would hit its temporal dead zone: V8 tolerates it, but
+// JavaScriptCore (Safari / iOS WKWebView) throws, blanking the app on launch.
+let mediaQuery: MediaQueryList | null = null
+
 // Persist + re-apply the theme on every change.
 settings.subscribe((s) => {
   try {
@@ -64,8 +70,6 @@ settings.subscribe((s) => {
   }
   applyTheme(s.theme)
 })
-
-let mediaQuery: MediaQueryList | null = null
 
 /** Resolve 'system' to the OS preference; 'light'/'dark' pass through. */
 function resolveTheme(pref: ThemePref): 'light' | 'dark' {

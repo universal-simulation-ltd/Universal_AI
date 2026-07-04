@@ -2,6 +2,43 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (iOS black-screen fix + bundle id)
+
+First launch of the Capacitor build showed a **black screen**. Root-caused and
+fixed; the app now renders on the iOS Simulator (iPhone 17 Pro, iOS 26.3).
+
+### The bug (TDZ / engine difference)
+- `src/lib/settings.ts` created the `settings` store and immediately
+  `settings.subscribe(...)`, whose callback fires **synchronously** and calls
+  `applyTheme()` → reads the module-level `let mediaQuery`. That `let` was
+  declared *after* the subscribe, so the first (sync) call read it inside its
+  temporal dead zone. **V8 (Chrome/desktop PWA) tolerates this; JavaScriptCore
+  (Safari / iOS WKWebView) throws** `ReferenceError: Cannot access 'mediaQuery'
+  before initialization`, aborting module eval → nothing mounts → black screen.
+- **Fix:** hoisted `let mediaQuery` above the `settings.subscribe` block. General
+  lesson for this app: anything a synchronous store subscription touches must be
+  initialized before the subscribe runs, or iOS will diverge from desktop.
+
+### Also fixed
+- **Bundle id** in `ios/App/App.xcodeproj/project.pbxproj` was the malformed
+  `.com.universal-ai.app` (leading dot); set to `ltd.universalsimulation.ai` to
+  match `capacitor.config.ts` (both Debug + Release).
+
+### Verified (Simulator)
+- Production build (minify on) → `cap sync` → `xcodebuild` → install → launch:
+  no startup JS error, welcome screen renders. Screenshot confirmed.
+- **WebGPU confirmed absent in WKWebView** — the app detects this and shows
+  "CPU mode (no WebGPU on this device)", falling back to the wllama CPU backend.
+  So the earlier WebGPU caveat is real but handled by existing fallback. Actual
+  model download + on-device inference (~0.9GB Llama 3.2 1B, CPU) is still
+  owner-to-verify — expect it to be slow but functional.
+
+### Debug-loop notes (how the black screen was found)
+- Captured the WKWebView console via `xcrun simctl launch --console-pty <udid>
+  <bundleid>`; Capacitor prints a "STARTUP JS ERROR" block there. A temporary
+  `build: { minify: false }` (+ bumped workbox precache limit) made the minified
+  `ol`/`mediaQuery` name readable; both reverted after.
+
 ## Update — 2026-07-04 (Capacitor iOS wrap for Xcode testing)
 
 Wrapped the PWA in Capacitor to get a native iOS shell / Xcode project so the app
