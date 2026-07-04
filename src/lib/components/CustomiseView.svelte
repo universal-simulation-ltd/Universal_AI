@@ -6,6 +6,9 @@
     modelId,
     backend,
     loadModel,
+    deleteModel,
+    downloadedModels,
+    loadedModelId,
     online,
   } from '../stores'
   import { settings, setTheme, setAiName, setUserName, setWebSearch, setSafeMode, setClearOnClose, type ThemePref } from '../settings'
@@ -14,6 +17,15 @@
   let models = $derived(modelsFor($backend))
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
   let loading = $derived($engineStatus === 'loading')
+
+  // Models whose weights are already downloaded on this device (probed at startup,
+  // kept current on load/delete) — listed here with a delete option.
+  let downloadedList = $derived(models.filter((m) => $downloadedModels[m.id]))
+  let pendingDelete = $state<string | null>(null)
+  async function confirmDelete(id: string) {
+    pendingDelete = null
+    await deleteModel(id)
+  }
 
   const THEMES: { id: ThemePref; label: string; icon: string }[] = [
     { id: 'light', label: 'Light', icon: '☀️' },
@@ -67,6 +79,35 @@
       </button>
     {/if}
     {#if activeModel?.note}<p class="note">{activeModel.note}</p>{/if}
+
+    {#if downloadedList.length}
+      <div class="dl-list">
+        {#each downloadedList as m (m.id)}
+          <div class="dl-row">
+            <div class="dl-info">
+              <span class="dl-name">{m.label}</span>
+              {#if $loadedModelId === m.id}<span class="dl-active">active</span>{/if}
+            </div>
+            {#if pendingDelete === m.id}
+              <div class="dl-confirm">
+                <span class="dl-q">Delete download?</span>
+                <button class="del-yes" onclick={() => confirmDelete(m.id)}>Delete</button>
+                <button class="del-no" onclick={() => (pendingDelete = null)}>Cancel</button>
+              </div>
+            {:else}
+              <button
+                class="del-btn"
+                title="Delete this download"
+                aria-label="Delete {m.label} download"
+                disabled={loading}
+                onclick={() => (pendingDelete = m.id)}
+              >🗑</button>
+            {/if}
+          </div>
+        {/each}
+      </div>
+      <p class="hint">Downloaded on this device. Deleting frees storage — you can re-download anytime.</p>
+    {/if}
   </section>
 
   <!-- Personalisation -->
@@ -212,6 +253,35 @@
   .track { height: 6px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
   .status { font-size: 0.8rem; color: var(--text-dim); }
+  .dl-list { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.2rem; }
+  .dl-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .dl-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.5rem; }
+  .dl-name { font-size: 0.85rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dl-active {
+    flex: 0 0 auto;
+    font-size: 0.64rem;
+    font-weight: 700;
+    color: var(--ok);
+    border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--border));
+    border-radius: 999px;
+    padding: 0.05rem 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .del-btn { flex: 0 0 auto; background: transparent; border-color: transparent; padding: 0.3rem 0.45rem; }
+  .del-btn:active:not(:disabled) { color: var(--danger); }
+  .dl-confirm { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .dl-q { font-size: 0.78rem; color: var(--text-dim); }
+  .del-yes, .del-no { font-size: 0.76rem; padding: 0.25rem 0.6rem; border-radius: 8px; }
+  .del-yes { background: var(--danger); border-color: var(--danger); color: #fff; }
   .toggle { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; }
   .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
   .switch {

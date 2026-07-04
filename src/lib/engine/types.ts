@@ -38,6 +38,10 @@ export interface LLMEngine {
   interrupt(): Promise<void>
   /** Release the model from memory. */
   unload(): Promise<void>
+  /** True if this model's weights are already cached on-device. */
+  isDownloaded(model: ModelOption): Promise<boolean>
+  /** Delete this model's cached weights from the device (frees storage). */
+  deleteModel(model: ModelOption): Promise<void>
 }
 
 export type EngineKind = 'webllm' | 'wllama'

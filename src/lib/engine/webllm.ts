@@ -89,4 +89,25 @@ export class WebLLMEngine implements LLMEngine {
     await this.engine?.unload()
     this.loadedModel = null
   }
+
+  async isDownloaded(model: ModelOption): Promise<boolean> {
+    if (!model.webllm) return false
+    try {
+      const { hasModelInCache } = await import('@mlc-ai/web-llm')
+      return await hasModelInCache(model.webllm)
+    } catch {
+      return false
+    }
+  }
+
+  async deleteModel(model: ModelOption): Promise<void> {
+    if (!model.webllm) return
+    if (this.loadedModel === model.webllm) await this.unload()
+    try {
+      const { deleteModelAllInfoInCache } = await import('@mlc-ai/web-llm')
+      await deleteModelAllInfoInCache(model.webllm)
+    } catch {
+      // Cache unavailable — nothing to delete.
+    }
+  }
 }

@@ -2,6 +2,54 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (Saved tab + model management moved to Customise + delete)
+
+Four UI/UX changes. `svelte-check` 0 errors, web build green; browser-verified.
+Landed on top of the Universal ID work below (shared `CustomiseView.svelte`).
+
+### Model management is now Customise-only
+- **Removed the homepage `ModelBar`** entirely (file deleted) — it no longer sits
+  under the header on the Chat screen. Load/switch/download now live solely in the
+  Customise "AI model" section. `ChatView` composer placeholder reflects state
+  ("Loading model…" / "Load a model in the Customise tab"); empty-state copy points
+  to Customise.
+- Auto-load on launch no longer keys off `modelEverLoaded`; it now loads a model
+  that is actually **downloaded** (see below), picking the selected one or the
+  first downloaded one.
+
+### Delete a downloaded model
+- `LLMEngine` gained `isDownloaded(model)` + `deleteModel(model)`.
+  - `webllm.ts`: `hasModelInCache` / `deleteModelAllInfoInCache` from `@mlc-ai/web-llm`.
+  - `wllama.ts`: reuses the live instance's `cacheManager` (or a throwaway `new
+    Wllama` that downloads nothing) — `list()` / `deleteMany()` matched on the GGUF
+    filename.
+- `stores.ts`: new `loadedModelId` + `downloadedModels` (Record<id,bool>, probed at
+  startup by `detectDownloadedModels()` — cache is source of truth, copes with iOS
+  clearing storage). `loadModel()` marks the model downloaded; new `deleteModel(id)`
+  frees the cache, and if it was the loaded one, drops the engine to idle.
+- `CustomiseView.svelte`: downloaded-models list with a 🗑 → "Delete download?"
+  inline confirm, and an "active" chip on the loaded one.
+
+### Long-press to save + Saved tab
+- `MessageBubble.svelte`: long-press (pointerdown 450ms; also right-click /
+  contextmenu) on an assistant bubble opens a Save / Copy menu; ★ badge when saved.
+  Assistant bubbles set `-webkit-touch-callout/user-select: none` so the gesture is
+  clean (Copy compensates). `a11y_no_static_element_interactions` intentionally
+  ignored (progressive-enhancement gesture on a non-control).
+- `stores.ts`: `saved` store (persisted to `localStorage['universal-ai:saved']`,
+  survives clear-on-close by design) + `saveResponse()` / `unsaveResponse()`.
+- New **`SavedView.svelte`** and a **Saved tab between Chat and Knowledge** (count
+  badge). Empty copy: "Tap and hold a response to save it here."
+
+### Verified / owner-to-verify
+- Browser: tab order Chat→Saved→Knowledge→Customise, no homepage model bar, exact
+  empty-state copy, saved-card render → badge → Copy/Remove cycle. `svelte-check` 0,
+  build green.
+- **Owner-to-verify on device:** the long-press gesture itself (touch timing in
+  WKWebView) and model **delete** actually evicting weights on-device (cache APIs
+  differ from the browser). Deleting the active model leaves the composer disabled
+  until another model loads — intended.
+
 ## Update — 2026-07-04 (Universal ID settings backup at the bottom of Customise)
 
 Opt-in "back up your settings with your Universal ID" shipped (commit

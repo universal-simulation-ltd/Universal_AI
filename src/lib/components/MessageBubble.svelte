@@ -1,6 +1,58 @@
 <script lang="ts">
-  import type { UIMessage, Confidence } from '../stores'
+  import { saved, saveResponse, unsaveResponse, type UIMessage, type Confidence } from '../stores'
   let { msg }: { msg: UIMessage } = $props()
+
+  // --- Long-press to save --------------------------------------------------
+  let menuOpen = $state(false)
+  let pressTimer: ReturnType<typeof setTimeout> | null = null
+  let startX = 0
+  let startY = 0
+
+  let isSaved = $derived($saved.some((s) => s.id === msg.id))
+  let canSave = $derived(msg.role === 'assistant' && !!msg.content && !msg.streaming)
+
+  function cancelPress() {
+    if (pressTimer) {
+      clearTimeout(pressTimer)
+      pressTimer = null
+    }
+  }
+  function startPress(e: PointerEvent) {
+    if (!canSave) return
+    // Don't hijack presses on the interactive bits (citations, source links).
+    if ((e.target as HTMLElement).closest('button, a')) return
+    startX = e.clientX
+    startY = e.clientY
+    cancelPress()
+    pressTimer = setTimeout(() => {
+      menuOpen = true
+      navigator.vibrate?.(10)
+    }, 450)
+  }
+  function maybeCancel(e: PointerEvent) {
+    // A real press stays roughly put; treat movement (a scroll) as a cancel.
+    if (pressTimer && (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10)) {
+      cancelPress()
+    }
+  }
+  function openMenu(e: Event) {
+    if (!canSave) return
+    e.preventDefault() // right-click / iOS callout → our menu instead
+    menuOpen = true
+  }
+  function toggleSave() {
+    if (isSaved) unsaveResponse(msg.id)
+    else saveResponse(msg)
+    menuOpen = false
+  }
+  async function copyText() {
+    try {
+      await navigator.clipboard.writeText(msg.content)
+    } catch {
+      // clipboard blocked — nothing else to do
+    }
+    menuOpen = false
+  }
 
   type Seg = { t: 'text'; v: string } | { t: 'cite'; n: number }
 
@@ -51,7 +103,18 @@
 </script>
 
 <div class="row {msg.role}">
-  <div class="bubble {msg.role}">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="bubble {msg.role}"
+    class:saveable={canSave}
+    onpointerdown={startPress}
+    onpointerup={cancelPress}
+    onpointermove={maybeCancel}
+    onpointercancel={cancelPress}
+    onpointerleave={cancelPress}
+    oncontextmenu={openMenu}
+  >
+    {#if isSaved}<span class="saved-badge" title="Saved" aria-label="Saved">★</span>{/if}
     {#if msg.content}
       <span class="text">{#each segs as s}{#if s.t === 'text'}{s.v}{:else}<button
             class="cite"
@@ -101,6 +164,16 @@
         </ol>
       {/if}
     {/if}
+
+    {#if menuOpen}
+      <button class="menu-backdrop" aria-label="Close menu" onclick={() => (menuOpen = false)}></button>
+      <div class="pop" role="menu">
+        <button role="menuitem" onclick={toggleSave}>
+          {isSaved ? '★ Remove from saved' : '☆ Save response'}
+        </button>
+        <button role="menuitem" onclick={copyText}>⧉ Copy text</button>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -109,12 +182,70 @@
   .row.user { justify-content: flex-end; }
   .row.assistant { justify-content: flex-start; }
   .bubble {
+    position: relative;
     max-width: 85%;
     padding: 0.6rem 0.8rem;
     border-radius: var(--radius);
     white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.45;
+  }
+  /* Assistant bubbles are long-pressable to save; suppress the iOS text-selection
+     callout so the press reliably opens our own menu (Copy is offered instead). */
+  .bubble.saveable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .saved-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 0.7rem;
+    line-height: 1;
+    color: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 4px;
+  }
+  .menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+  .pop {
+    position: absolute;
+    z-index: 21;
+    top: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 190px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+  }
+  .pop button {
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+  .pop button:hover,
+  .pop button:active {
+    background: var(--surface-2);
+  }
+  .pop button + button {
+    border-top: 1px solid var(--border);
   }
   .bubble.user { background: var(--user-bubble); border-bottom-right-radius: 4px; }
   .bubble.assistant {

@@ -107,4 +107,47 @@ export class WllamaEngine implements LLMEngine {
     this.wllama = null
     this.loadedModel = null
   }
+
+  // wllama caches model files (in OPFS / Cache Storage). Reuse the live instance's
+  // cache manager when a model is loaded, else a lightweight throwaway that only
+  // reads the cache (constructing Wllama downloads nothing on its own).
+  private standaloneCm: { list(): Promise<unknown[]>; deleteMany(p: (e: unknown) => boolean): Promise<void> } | null = null
+  private cacheMgr() {
+    if (this.wllama) return this.wllama.cacheManager
+    if (!this.standaloneCm) {
+      this.standaloneCm = new Wllama(CONFIG_PATHS, { suppressNativeLog: true })
+        .cacheManager as unknown as typeof this.standaloneCm
+    }
+    return this.standaloneCm!
+  }
+
+  async isDownloaded(model: ModelOption): Promise<boolean> {
+    if (!model.wllama) return false
+    const file = model.wllama.file
+    try {
+      const entries = (await this.cacheMgr().list()) as Array<{
+        name?: string
+        metadata?: { originalURL?: string }
+      }>
+      return entries.some(
+        (e) => (e.name ?? '').includes(file) || (e.metadata?.originalURL ?? '').includes(file),
+      )
+    } catch {
+      return false
+    }
+  }
+
+  async deleteModel(model: ModelOption): Promise<void> {
+    if (!model.wllama) return
+    const file = model.wllama.file
+    if (this.loadedModel === model.id) await this.unload()
+    try {
+      await this.cacheMgr().deleteMany((e) => {
+        const entry = e as { name?: string; metadata?: { originalURL?: string } }
+        return (entry.name ?? '').includes(file) || (entry.metadata?.originalURL ?? '').includes(file)
+      })
+    } catch {
+      // Cache unavailable — nothing to delete.
+    }
+  }
 }

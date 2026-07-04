@@ -43,6 +43,10 @@
   }
 
   let ready = $derived($engineStatus === 'ready')
+  let loading = $derived($engineStatus === 'loading')
+  let placeholder = $derived(
+    ready ? 'Message…' : loading ? 'Loading model…' : 'Load a model in the Customise tab',
+  )
 </script>
 
 <div class="chat">
@@ -50,7 +54,7 @@
     {#if $messages.length === 0}
       <div class="empty">
         <h2>Offline &amp; private</h2>
-        <p>Everything runs on your device. Load a model above, then chat.</p>
+        <p>Everything runs on your device. Load a model in the <b>Customise</b> tab, then chat.</p>
 
         <div class="rag-card">
           <h3>Answer from your own documents</h3>
@@ -88,7 +92,7 @@
       bind:value={draft}
       oninput={autosize}
       onkeydown={onKeydown}
-      placeholder={ready ? 'Message…' : 'Load a model to start'}
+      {placeholder}
       disabled={!ready}
       rows="1"
     ></textarea>

@@ -60,6 +60,15 @@ export const engineStatus = writable<EngineStatus>('idle')
 export const loadProgress = writable<LoadProgress | null>(null)
 export const engineError = writable<string | null>(null)
 
+/** The model actually loaded in memory right now (null if none). */
+export const loadedModelId = writable<string | null>(null)
+/**
+ * Per-model: whether its weights are cached on-device. Probed at startup (the
+ * cache is the source of truth, which also copes with iOS clearing storage) and
+ * updated whenever a model is loaded or deleted. Not persisted.
+ */
+export const downloadedModels = writable<Record<string, boolean>>({})
+
 export const messages = writable<UIMessage[]>([])
 export const generating = writable(false)
 
@@ -242,6 +251,8 @@ export async function loadModel(): Promise<void> {
     if (!model) throw new Error('No model selected')
     await engine.load(model, (p) => loadProgress.set(p))
     engineStatus.set('ready')
+    loadedModelId.set(model.id)
+    downloadedModels.update((d) => ({ ...d, [model.id]: true }))
     // Remember that a model exists on this device so the first-run gate stays
     // closed on future visits.
     try {
@@ -253,6 +264,46 @@ export async function loadModel(): Promise<void> {
   } catch (err) {
     engineStatus.set('error')
     engineError.set(err instanceof Error ? err.message : String(err))
+  }
+}
+
+/**
+ * Probe the cache to learn which models are already downloaded. Drives the
+ * Customise UI and startup auto-load, and stays truthful even if the OS cleared
+ * storage or the user deleted a model on another visit.
+ */
+export async function detectDownloadedModels(): Promise<void> {
+  try {
+    if (!engine) engine = await createEngine()
+    const rec: Record<string, boolean> = {}
+    for (const m of modelsFor(get(backend))) {
+      try {
+        rec[m.id] = await engine.isDownloaded(m)
+      } catch {
+        rec[m.id] = false
+      }
+    }
+    downloadedModels.set(rec)
+  } catch {
+    // engine/cache unavailable — leave the map untouched
+  }
+}
+
+/**
+ * Delete a downloaded model's weights from the device to free storage. If it is
+ * the model currently loaded, it is released from memory and the engine returns
+ * to idle (the chat composer will disable until a model is loaded again).
+ */
+export async function deleteModel(id: string): Promise<void> {
+  const model = MODELS.find((m) => m.id === id)
+  if (!model) return
+  if (!engine) engine = await createEngine()
+  await engine.deleteModel(model)
+  downloadedModels.update((d) => ({ ...d, [id]: false }))
+  if (get(loadedModelId) === id) {
+    loadedModelId.set(null)
+    engineStatus.set('idle')
+    loadProgress.set(null)
   }
 }
 
@@ -386,4 +437,58 @@ export async function stop(): Promise<void> {
 
 export function clearChat(): void {
   messages.set([])
+}
+
+// --- Saved responses -----------------------------------------------------
+// Responses the user long-presses to keep. Unlike the chat (which clear-on-close
+// can wipe), these persist to localStorage across sessions — that is the point
+// of saving. Shown in the Saved tab.
+export interface SavedResponse {
+  id: string
+  content: string
+  sources?: Citation[]
+  confidence?: Confidence
+  savedAt: number
+}
+
+const SAVED_KEY = 'universal-ai:saved'
+function loadSaved(): SavedResponse[] {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SAVED_KEY) : null
+    return raw ? (JSON.parse(raw) as SavedResponse[]) : []
+  } catch {
+    return []
+  }
+}
+
+export const saved = writable<SavedResponse[]>(loadSaved())
+saved.subscribe((list) => {
+  try {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(list))
+  } catch {
+    // storage unavailable — saved list stays in memory only
+  }
+})
+
+/** Save an assistant response (newest first; ignores duplicates and non-bot). */
+export function saveResponse(msg: UIMessage): void {
+  if (msg.role !== 'assistant' || !msg.content.trim()) return
+  saved.update((list) =>
+    list.some((s) => s.id === msg.id)
+      ? list
+      : [
+          {
+            id: msg.id,
+            content: msg.content,
+            sources: msg.sources,
+            confidence: msg.confidence,
+            savedAt: Math.floor(performance.timeOrigin + performance.now()),
+          },
+          ...list,
+        ],
+  )
+}
+
+export function unsaveResponse(id: string): void {
+  saved.update((list) => list.filter((s) => s.id !== id))
 }

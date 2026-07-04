@@ -1,26 +1,30 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import ModelBar from './lib/components/ModelBar.svelte'
   import ChatView from './lib/components/ChatView.svelte'
+  import SavedView from './lib/components/SavedView.svelte'
   import KnowledgeView from './lib/components/KnowledgeView.svelte'
   import CustomiseView from './lib/components/CustomiseView.svelte'
   import WelcomeGate from './lib/components/WelcomeGate.svelte'
   import {
     refreshKBs,
     detectCapabilities,
+    detectDownloadedModels,
     seedBuiltinKBs,
     loadPacksIntoMemory,
     loadModel,
     kbs,
+    saved,
     online,
     engineStatus,
+    modelId,
+    downloadedModels,
     modelEverLoaded,
     clearChat,
   } from './lib/stores'
   import { get } from 'svelte/store'
   import { settings } from './lib/settings'
 
-  let tab: 'chat' | 'knowledge' | 'customise' = $state('chat')
+  let tab: 'chat' | 'saved' | 'knowledge' | 'customise' = $state('chat')
 
   onMount(() => {
     // Startup work runs in an inner async task so onMount stays synchronous and
@@ -31,16 +35,23 @@
       void $settings
       await refreshKBs()
       await detectCapabilities()
+      await detectDownloadedModels()
       await seedBuiltinKBs()
       loadPacksIntoMemory() // best-effort warm any previously installed packs
 
-      // Auto-reload the model if this device has loaded one before. The weights are
-      // cached, so this re-initialises without re-downloading. Without it, anything
-      // that resets the JS context — an iOS WKWebView reload under memory pressure,
-      // or just backgrounding the app — leaves the engine null and the model looking
-      // like it "randomly unloaded"; the user would have to tap Load model again.
-      if (get(modelEverLoaded) && get(engineStatus) === 'idle') {
-        void loadModel()
+      // Auto-load a downloaded model so the app is ready without re-downloading,
+      // and so it self-heals after an iOS WKWebView reload / backgrounding (which
+      // resets the JS context and would otherwise leave the model "unloaded").
+      // Model management now lives only in the Customise tab, so this is the sole
+      // path that gets a model running on launch.
+      if (get(engineStatus) === 'idle') {
+        const dl = get(downloadedModels)
+        const current = get(modelId)
+        const target = dl[current] ? current : Object.keys(dl).find((id) => dl[id])
+        if (target) {
+          if (target !== current) modelId.set(target)
+          void loadModel()
+        }
       }
     })()
 
@@ -54,6 +65,7 @@
   })
 
   let enabledCount = $derived($kbs.filter((k) => k.enabled).length)
+  let savedCount = $derived($saved.length)
 </script>
 
 <header class="topbar">
@@ -73,6 +85,9 @@
   </div>
   <nav class="tabs">
     <button class:active={tab === 'chat'} onclick={() => (tab = 'chat')}>Chat</button>
+    <button class:active={tab === 'saved'} onclick={() => (tab = 'saved')}>
+      Saved{#if savedCount > 0}<span class="badge">{savedCount}</span>{/if}
+    </button>
     <button class:active={tab === 'knowledge'} onclick={() => (tab = 'knowledge')}>
       Knowledge{#if enabledCount > 0}<span class="badge">{enabledCount}</span>{/if}
     </button>
@@ -80,11 +95,11 @@
   </nav>
 </header>
 
-<ModelBar />
-
 <main>
   {#if tab === 'chat'}
     <ChatView />
+  {:else if tab === 'saved'}
+    <SavedView />
   {:else if tab === 'knowledge'}
     <KnowledgeView />
   {:else}
