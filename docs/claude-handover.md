@@ -14,7 +14,12 @@ Opt-in "back up your settings with your Universal ID" shipped (commit
   SSO** — this app isn't served under `.unisim.co.uk` (PWA / Capacitor), so it
   follows Universal Polling's email-OTP pattern: `signInWithOtp` →
   `verifyOtp(type:'email')` against the same `auth.users` the hub uses — the
-  session IS a Universal ID. Isolated `storageKey:
+  session IS a Universal ID. **Log-in ONLY** (`552e98f`):
+  `shouldCreateUser:false`, so accounts can't be created in the app — unknown
+  emails get a friendly "create one at app.unisim.co.uk" message, and the
+  panel is framed as a log-in form headed by the UNI·SIM globe mark
+  (`src/lib/assets/unisim-icon.png`, imported `?inline` so it works offline).
+  Isolated `storageKey:
   'universal-ai:universal-id-auth'`. Exposes `universalIdUser` + `lastBackupAt`
   stores and `backUpSettings()` / `restoreSettings()` (upsert/select on
   `app_settings_backups`, app code **'ai'**, one row per user).
