@@ -311,8 +311,14 @@ export async function send(userText: string): Promise<void> {
       }
     }
 
+    // Cap the history we replay each turn. Sending the whole conversation grows
+    // the prompt (and KV-cache memory) without bound, which on the CPU/WASM path
+    // eventually overflows the context window and pushes memory past the point
+    // where iOS reloads the WebView. Keep the most recent turns only.
+    const MAX_HISTORY = 8
     const history = get(messages)
       .filter((m) => !m.streaming && (m.role === 'user' || m.role === 'assistant'))
+      .slice(-MAX_HISTORY)
       .map<ChatMessage>((m) => ({ role: m.role, content: m.content }))
 
     const payload: ChatMessage[] = [{ role: 'system', content: system }, ...history]

@@ -2,6 +2,44 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (Top-bar scroll + model "randomly unloads" fix)
+
+Two device-reported issues after the app launched successfully on iOS.
+
+### Top bar overflowing off-page → now scrollable
+- `src/App.svelte`: the `.topbar` used `justify-content: space-between`, so on a
+  narrow phone the brand + tabs exceeded the width and "Customise" was clipped
+  off-page. Now: brand `flex: 0 0 auto`, `.tabs` gets `margin-left: auto` +
+  `min-width: 0` + `overflow-x: auto` (scrollbar hidden), buttons `flex: 0 0 auto;
+  white-space: nowrap`. Verified in browser preview at 375px: page no longer
+  overflows horizontally and the tab row scrolls to reveal Customise.
+
+### Model "randomly unloads" during chat → root cause + fixes
+- **Root cause:** nothing in the code unloads the engine mid-chat. The engine and
+  all stores are module-level, so the only thing that nulls them is a **JS-context
+  reset** — i.e. the iOS WKWebView reloading the page (memory pressure during
+  CPU/WASM inference, or the app being backgrounded). After a reload `engine` is
+  null and `engineStatus` reverts to `idle`, so the model looks "unloaded". The
+  app also **never auto-loaded on startup**, so returning users always landed on
+  "Load model" — same symptom.
+- **Fixes:**
+  1. `src/App.svelte` onMount now **auto-reloads the last model** when
+     `modelEverLoaded && engineStatus === 'idle'` (weights are cached, so it
+     re-inits without re-downloading). This self-heals any reload/background.
+  2. `src/lib/engine/wllama.ts`: `n_ctx` 4096 → **2048** — the KV cache is the
+     dominant CPU/WASM allocation; halving it cuts peak memory that triggers the
+     iOS jettison.
+  3. `src/lib/stores.ts` `send()`: cap replayed history to the **last 8 messages**
+     (`MAX_HISTORY`). It previously sent the entire conversation every turn →
+     unbounded prompt/KV growth.
+- Also fixed a latent bug surfaced by `svelte-check`: `onMount` was `async` and
+  returned a cleanup fn, which Svelte ignores (the `pagehide` listener leaked).
+  onMount is now synchronous with an inner async init task.
+- **Still owner-to-verify on a real device:** whether the memory fixes actually
+  stop the WKWebView reload under sustained CPU inference. The auto-reload makes
+  any remaining reload transparent (model comes back by itself). `svelte-check`
+  0 errors; simulator launches clean.
+
 ## Update — 2026-07-04 (iOS black-screen fix + bundle id)
 
 First launch of the Capacitor build showed a **black screen**. Root-caused and

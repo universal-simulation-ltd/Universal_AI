@@ -51,7 +51,12 @@ export class WllamaEngine implements LLMEngine {
     })
     onProgress?.({ progress: 0, text: 'Downloading model…' })
     await wllama.loadModelFromHF(model.wllama.repo, model.wllama.file, {
-      n_ctx: 4096,
+      // 2048 rather than 4096: the KV cache is the dominant runtime allocation on
+      // the CPU/WASM path, and halving the context markedly cuts peak memory —
+      // which is what triggers iOS WKWebView to jettison (and reload) the page
+      // mid-chat. Paired with the history cap in stores.send() so prompts stay
+      // within this window.
+      n_ctx: 2048,
       progressCallback: ({ loaded, total }) => {
         const p = total ? loaded / total : 0
         onProgress?.({ progress: p, text: `Downloading weights ${Math.round(p * 100)}%` })
