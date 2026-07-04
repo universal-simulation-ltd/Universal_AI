@@ -2,6 +2,50 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-04 (Universal ID settings backup at the bottom of Customise)
+
+Opt-in "back up your settings with your Universal ID" shipped (commit
+`a72cd9a`, pushed to main). New section at the bottom of the Customise tab.
+
+### How it works
+- **`src/lib/universalId.ts`** — the app's own `@supabase/supabase-js` client
+  against the SHARED suite Supabase project (baked publishable URL + anon key,
+  env-overridable; same values as Polling/Risk). **Deliberately NOT cookie
+  SSO** — this app isn't served under `.unisim.co.uk` (PWA / Capacitor), so it
+  follows Universal Polling's email-OTP pattern: `signInWithOtp` →
+  `verifyOtp(type:'email')` against the same `auth.users` the hub uses — the
+  session IS a Universal ID. Isolated `storageKey:
+  'universal-ai:universal-id-auth'`. Exposes `universalIdUser` + `lastBackupAt`
+  stores and `backUpSettings()` / `restoreSettings()` (upsert/select on
+  `app_settings_backups`, app code **'ai'**, one row per user).
+- **`src/lib/components/UniversalIdBackup.svelte`** — the panel (email → code →
+  signed-in Back up / Restore, offline-disabled buttons, friendly error
+  fallback for supabase-js's raw "{}" messages). Mounted at the bottom of
+  `CustomiseView.svelte`; Private-mode hint copy updated to name the two
+  opt-in network uses (web search, Universal ID backup).
+- **Privacy contract:** no network until the user signs in; only the Settings
+  object is uploaded — never chats/documents/models.
+
+### The rest of the wiring (other repos)
+- **universal-platform `94dff3d`** — migration `0050_app_settings_backups.sql`
+  (per-user × per-app jsonb, owner + platform-admin RLS, 64KB cap).
+  ⚠️ **NOT pushed to prod** (dry-run verified; `npx supabase db push` is the
+  owner step). Until then Back up/Restore fail server-side (sign-in works).
+- **unisim-central PR #34** (open, checks green, awaiting owner merge) —
+  god-mode gains an "Apps" view tab with a Settings-backups card (email lookup
+  → per-app rows → confirm-gated delete).
+- Suite changelog `2026.07.04.13`.
+
+### Verified / owner-to-verify
+- `svelte-check` 0 errors, `vite build` green; panel exercised in browser
+  preview (renders at page bottom; a bad address round-trips to prod auth and
+  shows the friendly error). **Owner-to-verify:** real end-to-end pass after
+  the db push — send code to a real inbox → verify → Back up → Restore on a
+  second device; check the row appears in god-mode → Apps.
+- ⚠️ A parallel session was editing this checkout (Saved-chats feature) while
+  this shipped; commit `a72cd9a` was surgically staged to carry ONLY the
+  backup work.
+
 ## Update — 2026-07-04 (WSET-style wine knowledge pack + multi-pack support)
 
 Added a second built-in knowledge pack and generalised the built-in-pack system
