@@ -90,6 +90,17 @@
 
 <header class="topbar">
   <div class="brand">
+    <!-- Suite mark — links out to the Universal Apps portal. Marks the app as
+         part of UNI SIM without pulling in the (React-only) shared navbar. -->
+    <a
+      class="suite"
+      href="https://opensource.unisim.co.uk"
+      target="_blank"
+      rel="noreferrer"
+      aria-label="UNI SIM — Universal Apps"
+    >
+      <img src={import.meta.env.BASE_URL + 'unisim-icon.png'} alt="" class="suite-mark" />
+    </a>
     <!-- Model indicator: green = a model is loaded and ready to chat,
          amber = loading, red = load failed, grey = no model loaded. -->
     <span
@@ -151,6 +162,20 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+  .suite {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+  }
+  .suite-mark {
+    width: 22px;
+    height: 22px;
+    display: block;
+    transition: transform 0.2s ease;
+  }
+  .suite:hover .suite-mark {
+    transform: translateY(-1px);
   }
   .dot {
     width: 9px;

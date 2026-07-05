@@ -5,8 +5,8 @@
   --border: #283042;
   --text: #e7ecf3;
   --text-dim: #95a0b4;
-  --accent: #6ea8fe;
-  --accent-press: #4d8bf0;
+  --accent: #ff9a1f;
+  --accent-press: #e05504;
   /* Text/icons rendered ON the accent colour. Dark ink works on the pale
      dark-mode accent; light mode uses a saturated blue, so it needs white. */
   --on-accent: #07101f;
@@ -42,8 +42,8 @@
   --border: #d8dee9;
   --text: #0f172a;
   --text-dim: #5b6678;
-  --accent: #2563eb;
-  --accent-press: #1d4ed8;
+  --accent: #e05504;
+  --accent-press: #b1490a;
   --on-accent: #ffffff;
   --user-bubble: #dbeafe;
   --bot-bubble: #ffffff;
