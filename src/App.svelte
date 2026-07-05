@@ -29,6 +29,30 @@
 
   let tab: 'chat' | 'saved' | 'knowledge' | 'customise' = $state('chat')
 
+  // Fade hints on the tab row: show a soft gradient on whichever edge has more
+  // tabs hidden past it, so it's obvious the row scrolls sideways when the tabs
+  // don't all fit (narrow screens / large text).
+  let tabsEl: HTMLElement | undefined = $state()
+  let fadeStart = $state(false) // more tabs off the leading (left) edge
+  let fadeEnd = $state(false) // more tabs off the trailing (right) edge
+
+  function updateTabFades() {
+    const el = tabsEl
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    fadeStart = el.scrollLeft > 1
+    fadeEnd = el.scrollLeft < max - 1
+  }
+
+  $effect(() => {
+    const el = tabsEl
+    if (!el) return
+    updateTabFades()
+    const ro = new ResizeObserver(updateTabFades)
+    ro.observe(el)
+    return () => ro.disconnect()
+  })
+
   onMount(() => {
     // Startup work runs in an inner async task so onMount stays synchronous and
     // can return a real cleanup (an async onMount's returned Promise is ignored
@@ -107,7 +131,13 @@
     ></span>
     Universal&nbsp;AI
   </div>
-  <nav class="tabs">
+  <nav
+    class="tabs"
+    class:fade-start={fadeStart}
+    class:fade-end={fadeEnd}
+    bind:this={tabsEl}
+    onscroll={updateTabFades}
+  >
     <button class:active={tab === 'chat'} onclick={() => (tab = 'chat')}>Chat</button>
     <button class:active={tab === 'saved'} onclick={() => (tab = 'saved')}>
       Saved{#if savedCount > 0}<span class="badge">{savedCount}</span>{/if}
@@ -174,7 +204,28 @@
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none; /* Firefox */
+    /* Soft fade on whichever edge has more tabs scrolled out of view — a hint
+       that the row scrolls sideways. --fs/--fe collapse to 0 when at that end. */
+    --fade: 22px;
+    --fs: 0px;
+    --fe: 0px;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fs),
+      #000 calc(100% - var(--fe)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fs),
+      #000 calc(100% - var(--fe)),
+      transparent 100%
+    );
   }
+  .tabs.fade-start { --fs: var(--fade); }
+  .tabs.fade-end { --fe: var(--fade); }
   .tabs::-webkit-scrollbar {
     display: none; /* WebKit — keep the scroll but hide the bar */
   }
