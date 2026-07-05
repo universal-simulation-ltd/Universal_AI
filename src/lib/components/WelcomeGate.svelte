@@ -9,7 +9,7 @@
     loadModel,
   } from '../stores'
   import { settings, setPersona } from '../settings'
-  import { ALL_PERSONAS } from '../personas'
+  import { ALL_PERSONAS, getPersona } from '../personas'
 
   // First-run welcome + model gate. Shown (by App.svelte) until a model has been
   // downloaded on this device. It cannot be dismissed without picking + loading a
@@ -21,6 +21,8 @@
     ($loadProgress?.text ?? 'Loading…').replace(/\s*It can take a while[\s\S]*$/i, '').trim(),
   )
   let loading = $derived($engineStatus === 'loading')
+  // The tapped character — its "who they are / where from" is shown below the grid.
+  let selectedPersona = $derived(getPersona($settings.personaId))
 </script>
 
 <div class="scrim" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
@@ -53,8 +55,8 @@
     <div class="field">
       <span class="label">2. Pick your first character</span>
       <p class="sub">
-        Each is an expert in a subject and has their own personality. You can
-        switch or add more anytime in Customise.
+        Each is an expert in a subject and has their own personality. Tap one to
+        choose it and see who they are — you can switch anytime in Customise.
       </p>
       <div class="personas" role="radiogroup" aria-label="Choose a character">
         {#each ALL_PERSONAS as p}
@@ -75,6 +77,10 @@
           </button>
         {/each}
       </div>
+      <p class="about" aria-live="polite">
+        <span class="about-emoji" aria-hidden="true">{selectedPersona.emoji}</span>
+        {selectedPersona.about}
+      </p>
     </div>
 
     {#if loading}
@@ -185,6 +191,20 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .about {
+    display: flex;
+    gap: 0.45rem;
+    text-align: left;
+    margin: 0 0 0.2rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-dim);
+  }
+  .about-emoji { flex: 0 0 auto; font-size: 1rem; line-height: 1.35; }
   .load { width: 100%; }
   .fineprint { margin: 0.7rem 0 0; color: var(--text-dim); font-size: 0.78rem; line-height: 1.45; }
   .progress { display: flex; flex-direction: column; gap: 0.4rem; }

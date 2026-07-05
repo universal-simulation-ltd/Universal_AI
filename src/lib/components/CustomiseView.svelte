@@ -122,8 +122,8 @@
   <section>
     <h3>Character</h3>
     <p class="hint">
-      Give the assistant a personality and a subject it's keen on. Each character
-      is a public-domain or original figure — pick one, or keep the plain assistant.
+      Give the assistant a personality and a subject it's keen on. Tap a character
+      to choose it and see who they are — each is a public-domain or original figure.
     </p>
     <div class="personas" role="radiogroup" aria-label="Choose a character">
       {#each ALL_PERSONAS as p}
@@ -143,7 +143,12 @@
         </button>
       {/each}
     </div>
-    {#if selectedPersona.blurb}<p class="note">{selectedPersona.blurb}</p>{/if}
+    {#if selectedPersona.about}
+      <p class="persona-about" aria-live="polite">
+        <span class="about-emoji" aria-hidden="true">{selectedPersona.emoji}</span>
+        {selectedPersona.about}
+      </p>
+    {/if}
   </section>
 
   <!-- Personalisation -->
@@ -322,6 +327,19 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .persona-about {
+    display: flex;
+    gap: 0.45rem;
+    margin: 0.2rem 0 0;
+    padding: 0.5rem 0.6rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--text-dim);
+  }
+  .about-emoji { flex: 0 0 auto; font-size: 1rem; line-height: 1.35; }
   .progress { display: flex; flex-direction: column; gap: 0.35rem; }
   .track { height: 6px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
