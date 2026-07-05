@@ -26,6 +26,7 @@ import {
   type RetrievedChunk,
 } from './rag'
 import { settings } from './settings'
+import { getPersona } from './personas'
 
 /** A numbered reference, mapping an inline [n] marker to its source. */
 export interface Citation {
@@ -448,10 +449,18 @@ export async function send(userText: string): Promise<void> {
     // RAG: retrieve from enabled KBs (+ opt-in web search) and ground the prompt.
     const cfg = get(settings)
     let system = SYSTEM_BASE + (cfg.safeMode !== false ? SAFE_MODE_ADDON : '')
-    if (cfg.aiName.trim()) {
+
+    // Persona ("Knowledge"): give the assistant a character + subject expertise.
+    // Its prompt describes manner and subject only; the name is set once, below,
+    // so an explicit "My name" override in Customise still wins over the persona.
+    const persona = getPersona(cfg.personaId)
+    if (persona.prompt) system += '\n\n' + persona.prompt
+
+    const aiName = cfg.aiName.trim() || (persona.id ? persona.name : '')
+    if (aiName) {
       system +=
-        `\n\nYour name is ${cfg.aiName.trim()}. When asked your name or ` +
-        `introducing yourself, say you are ${cfg.aiName.trim()}.`
+        `\n\nYour name is ${aiName}. When asked your name or ` +
+        `introducing yourself, say you are ${aiName}.`
     }
     if (cfg.userName.trim()) {
       system +=

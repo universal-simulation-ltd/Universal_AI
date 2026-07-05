@@ -90,12 +90,21 @@ Other sources: `--source=hf` (datasets-server API, fine for a few thousand),
 
 ## Models
 
-Defaults target an iPhone-15-Pro-class device (`src/lib/engine/models.ts`):
+Three tiers, picked by the user's phone rather than by model size
+(`src/lib/engine/models.ts`):
 
-- **Llama 3.2 1B** — fast, light, default.
-- **Qwen2.5 1.5B** — a bit sharper.
-- **Llama 3.2 3B** — best quality; prefer desktop / 8 GB+ phones (mobile Safari
-  may hit its per-tab memory ceiling).
+- **Older phones** — Qwen2.5 0.5B (~0.4 GB) — lightest download, least likely to
+  run out of memory.
+- **Most phones** — Llama 3.2 1B (~0.9 GB) — the balanced default.
+- **Future phones** — Llama 3.2 3B (~2.2 GB) — best quality; WebGPU only, prefer
+  newer / 8 GB+ phones or desktop (mobile Safari may hit its per-tab memory
+  ceiling).
+
+On the first-run welcome screen the user also picks a **character** — a
+personality-and-subject persona ("Luigi the Chef" for cooking, Sherlock Holmes
+for logic, and other public-domain figures; see `src/lib/personas.ts`). It's
+prompt-only (no download), works on the smallest model, and can be changed later
+in Customise.
 
 ## Project layout
 

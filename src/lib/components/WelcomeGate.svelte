@@ -8,6 +8,8 @@
     backend,
     loadModel,
   } from '../stores'
+  import { settings, setPersona } from '../settings'
+  import { ALL_PERSONAS } from '../personas'
 
   // First-run welcome + model gate. Shown (by App.svelte) until a model has been
   // downloaded on this device. It cannot be dismissed without picking + loading a
@@ -32,10 +34,12 @@
     </p>
 
     <label class="field">
-      <span class="label">Choose a model</span>
+      <span class="label">1. Choose a model for your phone</span>
       <select bind:value={$modelId} disabled={loading}>
         {#each models as m}
-          <option value={m.id}>{m.label} · {(m.sizeMB / 1000).toFixed(1)}GB</option>
+          <option value={m.id}>
+            {m.tier} — {m.label} · {(m.sizeMB / 1000).toFixed(1)}GB
+          </option>
         {/each}
       </select>
     </label>
@@ -46,6 +50,33 @@
       </p>
     {/if}
 
+    <div class="field">
+      <span class="label">2. Pick your first character</span>
+      <p class="sub">
+        Each is an expert in a subject and has their own personality. You can
+        switch or add more anytime in Customise.
+      </p>
+      <div class="personas" role="radiogroup" aria-label="Choose a character">
+        {#each ALL_PERSONAS as p}
+          <button
+            type="button"
+            class="persona"
+            class:selected={($settings.personaId ?? '') === p.id}
+            role="radio"
+            aria-checked={($settings.personaId ?? '') === p.id}
+            disabled={loading}
+            onclick={() => setPersona(p.id)}
+          >
+            <span class="p-emoji" aria-hidden="true">{p.emoji}</span>
+            <span class="p-text">
+              <span class="p-name">{p.name}</span>
+              <span class="p-domain">{p.domain}</span>
+            </span>
+          </button>
+        {/each}
+      </div>
+    </div>
+
     {#if loading}
       <div class="progress">
         <div class="track"><div class="fill" style="width:{pct}%"></div></div>
@@ -53,7 +84,7 @@
       </div>
     {:else}
       <button class="primary load" onclick={() => loadModel()}>
-        Download &amp; start
+        3. Download &amp; start
       </button>
       <p class="fineprint">
         The model downloads once (~1–2&nbsp;GB), is cached on your device, then runs
@@ -112,6 +143,48 @@
     padding: 0.6rem 0.7rem;
   }
   .note { margin: 0 0 0.8rem; color: var(--text-dim); font-size: 0.82rem; }
+  .sub { margin: 0 0 0.6rem; color: var(--text-dim); font-size: 0.78rem; line-height: 1.45; }
+  .personas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    max-height: 15rem;
+    overflow-y: auto;
+    padding: 0.1rem;
+    margin-bottom: 0.4rem;
+  }
+  .persona {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    text-align: left;
+    padding: 0.55rem 0.6rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .persona.selected {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  }
+  .persona:disabled { opacity: 0.55; }
+  .p-emoji { font-size: 1.5rem; line-height: 1; flex: 0 0 auto; }
+  .p-text { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; }
+  .p-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .p-domain {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .load { width: 100%; }
   .fineprint { margin: 0.7rem 0 0; color: var(--text-dim); font-size: 0.78rem; line-height: 1.45; }
   .progress { display: flex; flex-direction: column; gap: 0.4rem; }
