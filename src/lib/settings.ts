@@ -15,6 +15,12 @@ export interface Settings {
    *  address the user by name. */
   userName: string
   /**
+   * The chosen character / "Knowledge" persona id (see personas.ts). Empty
+   * string = the plain assistant with no particular personality. Picked on the
+   * first-run welcome screen and changeable later in Customise.
+   */
+  personaId: string
+  /**
    * Opt-in online web search. OFF by default — the app is offline-first, so
    * leaving the device for a search is a deliberate choice. When ON (and the
    * device is online) enabled chats can cite real URLs alongside local docs.
@@ -38,6 +44,7 @@ const DEFAULTS: Settings = {
   theme: 'system',
   aiName: '',
   userName: '',
+  personaId: '',
   webSearch: false,
   safeMode: true,
   clearOnClose: true,
@@ -113,6 +120,10 @@ export function setAiName(aiName: string): void {
 
 export function setUserName(userName: string): void {
   settings.update((s) => ({ ...s, userName }))
+}
+
+export function setPersona(personaId: string): void {
+  settings.update((s) => ({ ...s, personaId }))
 }
 
 export function setWebSearch(webSearch: boolean): void {

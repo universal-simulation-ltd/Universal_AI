@@ -50,6 +50,9 @@ export interface ModelOption {
   /** Stable key for the UI / selection. */
   id: string
   label: string
+  /** Friendly device tier this model targets ("Older phones" etc.), shown in
+   *  the picker so non-technical users choose by their phone, not model size. */
+  tier: string
   /** Approx download size, for the UI. */
   sizeMB: number
   /** Approx RAM/VRAM needed while running. */

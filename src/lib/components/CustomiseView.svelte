@@ -12,7 +12,8 @@
     loadedModelId,
     online,
   } from '../stores'
-  import { settings, setTheme, setAiName, setUserName, setWebSearch, setSafeMode, setClearOnClose, type ThemePref } from '../settings'
+  import { settings, setTheme, setAiName, setUserName, setPersona, setWebSearch, setSafeMode, setClearOnClose, type ThemePref } from '../settings'
+  import { ALL_PERSONAS, getPersona } from '../personas'
   import UniversalIdBackup from './UniversalIdBackup.svelte'
 
   let models = $derived(modelsFor($backend))
@@ -37,6 +38,9 @@
   // The model the engine is currently running (may differ from the dropdown
   // selection until the user loads it).
   let activeModel = $derived(MODELS.find((m) => m.id === $modelId))
+
+  // The currently chosen character ("Knowledge") persona.
+  let selectedPersona = $derived(getPersona($settings.personaId))
 </script>
 
 <div class="customise">
@@ -66,7 +70,7 @@
     </p>
     <select bind:value={$modelId} disabled={loading}>
       {#each models as m}
-        <option value={m.id}>{m.label} · {(m.sizeMB / 1000).toFixed(1)}GB</option>
+        <option value={m.id}>{m.tier} — {m.label} · {(m.sizeMB / 1000).toFixed(1)}GB</option>
       {/each}
     </select>
     {#if loading}
@@ -114,10 +118,38 @@
     {/if}
   </section>
 
+  <!-- Character / "Knowledge" persona -->
+  <section>
+    <h3>Character</h3>
+    <p class="hint">
+      Give the assistant a personality and a subject it's keen on. Each character
+      is a public-domain or original figure — pick one, or keep the plain assistant.
+    </p>
+    <div class="personas" role="radiogroup" aria-label="Choose a character">
+      {#each ALL_PERSONAS as p}
+        <button
+          type="button"
+          class="persona"
+          class:selected={($settings.personaId ?? '') === p.id}
+          role="radio"
+          aria-checked={($settings.personaId ?? '') === p.id}
+          onclick={() => setPersona(p.id)}
+        >
+          <span class="p-emoji" aria-hidden="true">{p.emoji}</span>
+          <span class="p-text">
+            <span class="p-name">{p.name}</span>
+            <span class="p-domain">{p.domain}</span>
+          </span>
+        </button>
+      {/each}
+    </div>
+    {#if selectedPersona.blurb}<p class="note">{selectedPersona.blurb}</p>{/if}
+  </section>
+
   <!-- Personalisation -->
   <section>
     <h3>Names</h3>
-    <p class="hint">Optional — set what the assistant calls itself and how it addresses you in chat.</p>
+    <p class="hint">Optional — set what the assistant calls itself and how it addresses you in chat. A name here overrides the character's name.</p>
     <label class="sublabel" for="ai-name">My name <span class="muted">(the assistant)</span></label>
     <input
       id="ai-name"
@@ -254,6 +286,42 @@
     border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 0.7rem; }
   .note { margin: 0; font-size: 0.78rem; color: var(--text-dim); }
   .err { margin: 0; font-size: 0.82rem; color: var(--danger); line-height: 1.4; }
+  .personas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .persona {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    text-align: left;
+    padding: 0.55rem 0.6rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .persona.selected {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+  }
+  .p-emoji { font-size: 1.5rem; line-height: 1; flex: 0 0 auto; }
+  .p-text { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; }
+  .p-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .p-domain {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .progress { display: flex; flex-direction: column; gap: 0.35rem; }
   .track { height: 6px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
   .fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
