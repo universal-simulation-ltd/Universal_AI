@@ -14,11 +14,52 @@
   let scroller: HTMLElement
   let textarea: HTMLTextAreaElement
 
+  // Scroll behaviour: when a new turn starts we bring the question to the top of
+  // the viewport so the answer streams in below it — we deliberately do NOT
+  // follow the text as it grows. The user reads from the top and scrolls down at
+  // their own pace, or taps the jump-to-latest arrow.
+  let prevCount = 0
+  let mounted = false
+  let showJump = $state(false)
+
+  function nearBottom() {
+    if (!scroller) return true
+    return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 40
+  }
+
+  function refreshJump() {
+    showJump = !nearBottom()
+  }
+
+  function scrollToBottom(smooth = true) {
+    if (!scroller) return
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+  }
+
+  // Align the most recent question to the top of the scroll area.
+  function pinLatestQuestionTop() {
+    if (!scroller) return
+    const userRows = scroller.querySelectorAll<HTMLElement>('.row.user')
+    const target = userRows[userRows.length - 1]
+    if (!target) return
+    scroller.scrollTop +=
+      target.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 8
+  }
+
   $effect(() => {
-    // Re-run when messages change; pin to bottom.
-    void $messages
+    const count = $messages.length
     tick().then(() => {
-      if (scroller) scroller.scrollTop = scroller.scrollHeight
+      if (!scroller) return
+      if (!mounted) {
+        // First render (may reopen an existing conversation) → show the latest.
+        mounted = true
+        scrollToBottom(false)
+      } else if (count > prevCount) {
+        // A new turn began: put the question at the top, don't chase the stream.
+        pinLatestQuestionTop()
+      }
+      prevCount = count
+      refreshJump()
     })
   })
 
@@ -50,7 +91,8 @@
 </script>
 
 <div class="chat">
-  <div class="scroll" bind:this={scroller}>
+  <div class="stream">
+    <div class="scroll" bind:this={scroller} onscroll={refreshJump}>
     {#if $messages.length === 0}
       <div class="empty">
         <h2>Offline &amp; private</h2>
@@ -69,6 +111,21 @@
       {#each $messages as msg (msg.id)}
         <MessageBubble {msg} />
       {/each}
+    {/if}
+    </div>
+
+    {#if showJump}
+      <button
+        class="jump"
+        title="Scroll to latest"
+        aria-label="Scroll to latest"
+        onclick={() => scrollToBottom(true)}
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 5v14" />
+          <path d="M19 12l-7 7-7-7" />
+        </svg>
+      </button>
     {/if}
   </div>
 
@@ -106,6 +163,13 @@
 
 <style>
   .chat { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .stream {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
   .scroll {
     flex: 1;
     min-height: 0;
@@ -113,6 +177,24 @@
     padding: 0.8rem 0.9rem;
     -webkit-overflow-scrolling: touch;
   }
+  .jump {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    z-index: 10;
+  }
+  .jump:active { background: var(--surface-2); }
   .empty {
     margin: auto;
     max-width: 34ch;
