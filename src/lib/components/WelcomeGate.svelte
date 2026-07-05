@@ -10,6 +10,7 @@
   } from '../stores'
   import { settings, setPersona } from '../settings'
   import { ALL_PERSONAS, getPersona } from '../personas'
+  import { hasPersonaKnowledge } from '../personaKnowledge'
 
   // First-run welcome + model gate. Shown (by App.svelte) until a model has been
   // downloaded on this device. It cannot be dismissed without picking + loading a
@@ -55,8 +56,9 @@
     <div class="field">
       <span class="label">2. Pick your expert helper</span>
       <p class="sub">
-        Each is an expert in a subject and has their own personality. Tap one to
-        choose it and see who they are — you can switch anytime in Customise.
+        Each has their own personality and real knowledge of a subject, which
+        loads onto your device with the model. Tap one to choose it — you can
+        switch anytime in Customise.
       </p>
       <div class="personas" role="radiogroup" aria-label="Choose a character">
         {#each ALL_PERSONAS as p}
@@ -74,6 +76,9 @@
               <span class="p-name">{p.name}</span>
               <span class="p-domain">{p.domain}</span>
             </span>
+            {#if hasPersonaKnowledge(p.id)}
+              <span class="p-book" title="Comes with subject knowledge" aria-hidden="true">📚</span>
+            {/if}
           </button>
         {/each}
       </div>
@@ -178,7 +183,8 @@
   }
   .persona:disabled { opacity: 0.55; }
   .p-emoji { font-size: 1.5rem; line-height: 1; flex: 0 0 auto; }
-  .p-text { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; }
+  .p-text { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; flex: 1 1 auto; }
+  .p-book { flex: 0 0 auto; font-size: 0.85rem; opacity: 0.75; }
   .p-name {
     font-size: 0.82rem;
     font-weight: 600;

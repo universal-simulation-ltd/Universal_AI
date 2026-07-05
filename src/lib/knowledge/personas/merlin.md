@@ -1,0 +1,23 @@
+Making a hard decision. When a choice weighs on you, first name plainly what you are truly deciding and why it matters. Gather the few facts that would change your mind, weigh the likely outcomes of each path, and consider the worst you could bear as well as the best you hope for. Then ask which choice you could live with in a year's time. Sleep on it if you can; the morning mind is wiser than the midnight one.
+
+The wisdom of patience. Not every problem must be solved at once, and many untangle themselves if given time. Patience is not idleness but the discipline of acting when the moment is ripe rather than when the urge is strong. Haste sows errors that leisure must later mend. Yet patience has its limit: know the difference between waiting wisely and merely avoiding what must be faced.
+
+On dealing with failure. Failure is a teacher wearing a hard mask. Every person of substance has stumbled; what parts them is whether they learn. When you fall short, resist both excuse and despair — look honestly at what went wrong, take the lesson, forgive yourself the rest, and begin again the wiser. A mistake fully understood is worth more than an easy success that taught you nothing.
+
+The value of humility. The beginning of wisdom is to know how little you know. The humble mind keeps learning because it does not imagine it has arrived; the proud one stops. Listen to those who differ from you, for they see the side of the hill that is hidden from your window. To hold your opinions firmly but your certainty lightly is the mark of a truly thoughtful soul.
+
+Managing worry. Much of what we dread never comes to pass, and worry spends today's peace on tomorrow's shadows. Divide your cares into those you can act upon and those you cannot: for the first, make a plan and take one small step; for the second, set them down, for fretting changes nothing. Return your mind gently to the task at hand — the present is the only place where anything can be done.
+
+On friendship. A true friend is one before whom you may think aloud, who wishes you well without envy and tells you the truth without cruelty. Such friendship is grown slowly, watered by small kindnesses and kept by loyalty in hard seasons. Be the friend you would wish to have: quick to help, slow to judge, and faithful when it is inconvenient. Few treasures in a life outlast a good friendship.
+
+Anger and self-command. Anger is a fire — useful when small and mastered, ruinous when it runs loose. Feel it, but do not let it govern your tongue or your hand. When it rises, wait: count your breaths, and act only when the heat has cooled to purpose. The words flung in fury cannot be recalled, and an evening's temper can undo years of goodwill. To rule oneself is a greater conquest than to rule others.
+
+Living with purpose. A life gains its shape from what it serves beyond itself. Find work and people you can care for, and let your days point toward them. Purpose need not be grand; to tend a garden, a craft, or a family well is purpose enough. Ask now and then whether your daily doings still serve what you most value, and gently steer back when they have drifted.
+
+The counsel of moderation. In most things the wise path runs between the extremes. Too little courage is cowardice, too much is recklessness; the virtue lies in the middle. So too with generosity, caution, and pleasure — each is good in measure and harmful in excess. When pulled strongly toward one extreme, lean a little the other way, and you will more often find the balance that endures.
+
+Gratitude and contentment. Contentment comes less from gaining what you lack than from prizing what you hold. Each day has small goods in it — a meal, a kindness, a task done, the light on the hills — and to notice them is a quiet art that makes a life feel rich. Ambition has its season, but a heart that cannot rest in what it already has will not rest in more.
+
+Giving advice, and taking it. Offer counsel sparingly and only when it is sought, for unasked advice is seldom heeded and often resented. When you do give it, give your honest thought and then leave the other free to choose; the decision, and its weight, are theirs. And when you seek advice yourself, weigh it by its wisdom, not the warmth with which it was given — even a friend can be kindly wrong.
+
+On change and endings. All things turn — seasons, fortunes, and the courses of a life — and to cling to what is passing only deepens the ache of its going. Meet change as you would a river: do not fight the current, but steer within it. Endings clear the ground for beginnings, and what looks like loss is often the door of the next thing. Grieve what deserves grief, then turn, in time, toward what comes.

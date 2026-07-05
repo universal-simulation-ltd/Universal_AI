@@ -15,6 +15,7 @@ import {
   listKBs,
   putKB,
   deleteKB as deleteKBRecord,
+  ingestDocument,
   retrieve,
   webSearch,
   fetchManifest,
@@ -27,6 +28,7 @@ import {
 } from './rag'
 import { settings } from './settings'
 import { getPersona } from './personas'
+import { PERSONA_KNOWLEDGE, PERSONA_KB_PREFIX, personaKbId } from './personaKnowledge'
 
 /** A numbered reference, mapping an inline [n] marker to its source. */
 export interface Citation {
@@ -123,6 +125,18 @@ messages.subscribe(() => {
 export const kbs = writable<KnowledgeBase[]>([])
 
 /**
+ * While a character's knowledge is being embedded onto the device for the first
+ * time, this holds { id, done, total } so the UI can show a "loading knowledge"
+ * progress; null when idle. Enabling an already-embedded character is instant
+ * and never sets this.
+ */
+export const personaKnowledgeStatus = writable<{
+  id: string
+  done: number
+  total: number
+} | null>(null)
+
+/**
  * Whether the device currently has network access. The connection indicator
  * reads this: green = offline (private, the desired state), red = online. It
  * reflects reachability only — the app still makes no network calls unless the
@@ -186,6 +200,72 @@ export async function removeKB(kb: KnowledgeBase): Promise<void> {
   }
   await deleteKBRecord(kb.id)
   await refreshKBs()
+}
+
+// A character's knowledge is a normal KB, namespaced `persona:<id>`. It is
+// embedded on-device the first time the character is selected, then simply
+// re-enabled thereafter. Only the active character's knowledge stays enabled —
+// switching characters swaps which one is on, leaving the user's own KBs alone.
+// Applications are serialized so rapid persona switches can't interleave.
+let personaApplyChain: Promise<void> = Promise.resolve()
+
+/**
+ * Make the given character's subject knowledge the active persona KB: enable it
+ * (embedding it first if this is its first use) and disable every other
+ * character's knowledge. Pass an empty id for the plain assistant, which just
+ * turns all character knowledge off. Best-effort — if embedding can't run
+ * (offline before the embedder is cached, or memory-starved) the character's
+ * personality still applies; the knowledge simply isn't grounded this time.
+ */
+export function applyPersonaKnowledge(personaId: string): Promise<void> {
+  personaApplyChain = personaApplyChain.then(() => doApplyPersonaKnowledge(personaId))
+  return personaApplyChain
+}
+
+async function doApplyPersonaKnowledge(personaId: string): Promise<void> {
+  const targetId = personaId ? personaKbId(personaId) : ''
+  let changed = false
+
+  // Turn off any other character's knowledge so only the chosen one is active.
+  for (const kb of get(kbs)) {
+    if (kb.id.startsWith(PERSONA_KB_PREFIX) && kb.id !== targetId && kb.enabled) {
+      await putKB({ ...kb, enabled: false })
+      changed = true
+    }
+  }
+
+  if (targetId) {
+    const existing = get(kbs).find((k) => k.id === targetId)
+    if (existing) {
+      if (!existing.enabled) {
+        await putKB({ ...existing, enabled: true })
+        changed = true
+      }
+      // Retrieval will need the embedder — warm it now, with memory headroom.
+      void warmEmbeddings()
+    } else if (PERSONA_KNOWLEDGE[personaId]?.trim()) {
+      // First use of this character — embed its knowledge onto the device.
+      const persona = getPersona(personaId)
+      personaKnowledgeStatus.set({ id: personaId, done: 0, total: 1 })
+      try {
+        await warmEmbeddings()
+        await ingestDocument(
+          `${persona.name} — ${persona.domain}`,
+          PERSONA_KNOWLEDGE[personaId],
+          persona.name,
+          (done, total) => personaKnowledgeStatus.set({ id: personaId, done, total }),
+          { id: targetId, enabled: true },
+        )
+        changed = true
+      } catch (err) {
+        console.warn('Could not load character knowledge — using personality only:', err)
+      } finally {
+        personaKnowledgeStatus.set(null)
+      }
+    }
+  }
+
+  if (changed) await refreshKBs()
 }
 
 // --- Built-in, pre-embedded knowledge packs ------------------------------
@@ -351,6 +431,10 @@ export async function loadModel(): Promise<void> {
     clearLoadSentinel()
     engineStatus.set('ready')
     loadedModelId.set(model.id)
+    // A model is now running — load the selected character's knowledge onto the
+    // device (embedding it on first use, else just enabling it). Deferred to
+    // here so onboarding embeds only after the model is up, not during download.
+    void applyPersonaKnowledge(get(settings).personaId)
     downloadedModels.update((d) => ({ ...d, [model.id]: true }))
     // Remember that a model exists on this device so the first-run gate stays
     // closed on future visits.
@@ -451,8 +535,10 @@ export async function send(userText: string): Promise<void> {
     let system = SYSTEM_BASE + (cfg.safeMode !== false ? SAFE_MODE_ADDON : '')
 
     // Persona ("Knowledge"): give the assistant a character + subject expertise.
-    // Its prompt describes manner and subject only; the name is set once, below,
-    // so an explicit "My name" override in Customise still wins over the persona.
+    // The persona's subject knowledge is retrieved from separately (its KB is
+    // enabled by applyPersonaKnowledge). Its prompt describes manner and subject
+    // only; the name is set once, below, so an explicit "My name" override in
+    // Customise still wins over the persona.
     const persona = getPersona(cfg.personaId)
     if (persona.prompt) system += '\n\n' + persona.prompt
 

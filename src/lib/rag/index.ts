@@ -67,9 +67,10 @@ export async function ingestDocument(
   text: string,
   source = name,
   onProgress?: (done: number, total: number) => void,
+  opts?: { id?: string; enabled?: boolean },
 ): Promise<KnowledgeBase> {
   const pieces = chunkText(text)
-  const kbId = uid('kb')
+  const kbId = opts?.id ?? uid('kb')
 
   // Embed in small batches to keep memory flat and report progress.
   const batchSize = 16
@@ -87,7 +88,7 @@ export async function ingestDocument(
   const kb: KnowledgeBase = {
     id: kbId,
     name,
-    enabled: true,
+    enabled: opts?.enabled ?? true,
     chunkCount: chunks.length,
     createdAt: Math.floor(performance.timeOrigin + performance.now()),
   }

@@ -1,7 +1,9 @@
 // Characters ("Knowledges") the user can pick to give the assistant a
-// personality and a subject it's especially keen on. Each is a lightweight,
-// prompt-only persona — no download — so it works on the smallest model and
-// fully offline.
+// personality and real expertise in a subject. Each pairs a personality prompt
+// (below) with a bundled body of subject knowledge (see personaKnowledge.ts)
+// that is embedded onto the device when the character is selected and retrieved
+// from while chatting — so e.g. Luigi the Chef actually answers from cooking
+// knowledge, with citations, not just in a chef's voice. It all works offline.
 //
 // Names are either original ("Luigi the Chef" — evokes a friendly Italian cook
 // without using anyone's trademark) or drawn from widely-recognised

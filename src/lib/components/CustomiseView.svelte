@@ -11,10 +11,21 @@
     downloadedModels,
     loadedModelId,
     online,
+    applyPersonaKnowledge,
+    personaKnowledgeStatus,
   } from '../stores'
   import { settings, setTheme, setAiName, setUserName, setPersona, setWebSearch, setSafeMode, setClearOnClose, type ThemePref } from '../settings'
   import { ALL_PERSONAS, getPersona } from '../personas'
+  import { hasPersonaKnowledge } from '../personaKnowledge'
   import UniversalIdBackup from './UniversalIdBackup.svelte'
+
+  // Choosing a character both sets the personality and loads its subject
+  // knowledge onto the device (embedding it the first time, then retrieving from
+  // it while chatting).
+  function choosePersona(id: string) {
+    setPersona(id)
+    void applyPersonaKnowledge(id)
+  }
 
   let models = $derived(modelsFor($backend))
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
@@ -122,8 +133,9 @@
   <section>
     <h3>Character</h3>
     <p class="hint">
-      Give the assistant a personality and a subject it's keen on. Tap a character
-      to choose it and see who they are — each is a public-domain or original figure.
+      Give the assistant a personality and real knowledge of a subject. Tap a
+      character to choose it — its knowledge downloads and loads onto your device
+      the first time, then it answers from that subject while you chat.
     </p>
     <div class="personas" role="radiogroup" aria-label="Choose a character">
       {#each ALL_PERSONAS as p}
@@ -133,16 +145,29 @@
           class:selected={($settings.personaId ?? '') === p.id}
           role="radio"
           aria-checked={($settings.personaId ?? '') === p.id}
-          onclick={() => setPersona(p.id)}
+          onclick={() => choosePersona(p.id)}
         >
           <span class="p-emoji" aria-hidden="true">{p.emoji}</span>
           <span class="p-text">
             <span class="p-name">{p.name}</span>
             <span class="p-domain">{p.domain}</span>
           </span>
+          {#if $personaKnowledgeStatus?.id === p.id}
+            <span class="p-load" title="Loading knowledge…" aria-label="Loading knowledge">
+              <span class="spinner" aria-hidden="true"></span>
+            </span>
+          {:else if hasPersonaKnowledge(p.id)}
+            <span class="p-book" title="Comes with subject knowledge" aria-hidden="true">📚</span>
+          {/if}
         </button>
       {/each}
     </div>
+    {#if $personaKnowledgeStatus}
+      <p class="persona-loading" aria-live="polite">
+        Loading {getPersona($personaKnowledgeStatus.id).name}'s knowledge onto your
+        device… <b>{Math.round(($personaKnowledgeStatus.done / Math.max(1, $personaKnowledgeStatus.total)) * 100)}%</b>
+      </p>
+    {/if}
     {#if selectedPersona.about}
       <p class="persona-about" aria-live="polite">
         <span class="about-emoji" aria-hidden="true">{selectedPersona.emoji}</span>
@@ -311,7 +336,7 @@
     background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
   }
   .p-emoji { font-size: 1.5rem; line-height: 1; flex: 0 0 auto; }
-  .p-text { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; }
+  .p-text { display: flex; flex-direction: column; min-width: 0; gap: 0.1rem; flex: 1 1 auto; }
   .p-name {
     font-size: 0.82rem;
     font-weight: 600;
@@ -326,6 +351,23 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .p-book { flex: 0 0 auto; font-size: 0.9rem; opacity: 0.75; }
+  .p-load { flex: 0 0 auto; display: inline-flex; }
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: persona-spin 0.7s linear infinite;
+  }
+  @keyframes persona-spin { to { transform: rotate(360deg); } }
+  .persona-loading {
+    margin: 0.5rem 0 0;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    line-height: 1.45;
   }
   .persona-about {
     display: flex;
