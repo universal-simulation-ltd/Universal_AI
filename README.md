@@ -102,7 +102,8 @@ Three tiers, picked by the user's phone rather than by model size
 
 On the first-run welcome screen the user also picks a **character** — a
 personality-and-subject persona ("Luigi the Chef" for cooking, Sherlock Holmes
-for logic, and other public-domain figures; see `src/lib/personas.ts`). It's
+for logic, Alice, Merlin, Mowgli and other public-domain figures; see
+`src/lib/personas.ts`). It's
 prompt-only (no download), works on the smallest model, and can be changed later
 in Customise.
 
