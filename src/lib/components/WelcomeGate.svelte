@@ -53,7 +53,7 @@
     {/if}
 
     <div class="field">
-      <span class="label">2. Pick your first character</span>
+      <span class="label">2. Pick your expert helper</span>
       <p class="sub">
         Each is an expert in a subject and has their own personality. Tap one to
         choose it and see who they are — you can switch anytime in Customise.
@@ -168,6 +168,9 @@
     background: var(--surface-2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    /* Let the 1fr grid tracks shrink instead of the button forcing its
+       non-wrapping content width and overflowing the card horizontally. */
+    min-width: 0;
   }
   .persona.selected {
     border-color: var(--accent);
@@ -180,9 +183,7 @@
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
   .p-domain {
     font-size: 0.7rem;

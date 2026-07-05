@@ -2,6 +2,36 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-05 (Welcome-gate character grid: horizontal-fit fix + copy)
+
+Small UI polish pass on the first-run `WelcomeGate` character picker, all in
+`src/lib/components/WelcomeGate.svelte`.
+
+### Character grid overflowed the card horizontally on phones (`.personas`)
+- The 2-col `grid-template-columns: repeat(2, 1fr)` grid was spilling ~106px
+  past the card's right edge on a 375px viewport — the right column
+  (Luigi/Captain Nemo/Mowgli/Merlin) was clipped, with a horizontal scrollbar.
+- Root cause: the `.persona` grid items kept the default `min-width: auto`, so
+  each `1fr` track (`minmax(auto, 1fr)`) refused to shrink below the button's
+  min-content — driven by the non-wrapping `.p-name` text. Tracks resolved to
+  182px + 195px instead of an even split.
+- Fix: `min-width: 0` on `.persona` (lets the tracks actually constrain the
+  buttons) + `.p-name` now wraps (`overflow-wrap: anywhere`, dropped the
+  `nowrap`/ellipsis) so no character name gets clipped. Verified in mobile
+  preview: overflow 0px, columns even at 136px each, names wrap to 2 lines.
+
+### Copy
+- Step-2 label "Pick your first character" → **"Pick your expert helper"**.
+- (No reorder needed — Luigi the Chef is already first after the plain
+  assistant via `ALL_PERSONAS = [DEFAULT_PERSONA, ...PERSONAS]` in
+  `personas.ts`; confirmed in preview.)
+
+### Deploy state
+- Web rebuilt (`npm run build`) + `npx cap sync ios`; iOS Xcode build
+  (`App` scheme, iPhone 17 Pro simulator) **BUILD SUCCEEDED**.
+- Committed and merged to local `main`. **Not pushed** — run `/signoff` (or
+  `git push`) when ready to publish.
+
 ## Update — 2026-07-05 (Generation-crash recovery + 0.5B model + light-mode contrast)
 
 Owner re-tested on iPhone after yesterday's fixes: model now LOADS, but typing a
