@@ -288,7 +288,7 @@
     color: var(--accent);
     cursor: pointer;
   }
-  .cite:hover, .cite.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .cite:hover, .cite.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
   .meta {
     display: flex;

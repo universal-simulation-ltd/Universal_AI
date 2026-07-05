@@ -247,7 +247,7 @@
   .segmented button.active {
     background: var(--accent);
     border-color: var(--accent);
-    color: #07101f;
+    color: var(--on-accent);
     font-weight: 600;
   }
   select { width: 100%; font: inherit; color: var(--text); background: var(--surface-2);

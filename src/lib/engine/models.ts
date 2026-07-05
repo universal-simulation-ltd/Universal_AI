@@ -6,6 +6,15 @@ import type { ModelOption } from './types'
 // UI only offers models the current backend can actually run.
 export const MODELS: ModelOption[] = [
   {
+    id: 'qwen2.5-0.5b',
+    label: 'Qwen2.5 0.5B (lightest)',
+    sizeMB: 400,
+    ramMB: 650,
+    note: 'Best for phones — smallest download and the least likely to run out of memory.',
+    webllm: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    wllama: { repo: 'bartowski/Qwen2.5-0.5B-Instruct-GGUF', file: 'Qwen2.5-0.5B-Instruct-Q4_K_M.gguf' },
+  },
+  {
     id: 'llama-3.2-1b',
     label: 'Llama 3.2 1B (fast, default)',
     sizeMB: 880,
@@ -34,7 +43,10 @@ export const MODELS: ModelOption[] = [
   },
 ]
 
-export const DEFAULT_MODEL_ID = MODELS[0].id
+// The WebGPU default. The WASM/CPU path overrides this to the lightest model
+// at detect time (see detectCapabilities) — phones that lack WebGPU are also
+// the devices where 1B+ models get the page killed for memory.
+export const DEFAULT_MODEL_ID = 'llama-3.2-1b'
 
 /** Models the given backend can actually run. */
 export function modelsFor(backend: 'webllm' | 'wllama' | null): ModelOption[] {

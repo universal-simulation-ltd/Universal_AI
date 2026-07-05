@@ -223,5 +223,5 @@
     transition: transform 0.15s, background 0.15s;
   }
   .toggle input:checked + span { background: var(--accent); border-color: var(--accent); }
-  .toggle input:checked + span::before { transform: translateX(18px); background: #07101f; }
+  .toggle input:checked + span::before { transform: translateX(18px); background: var(--on-accent); }
 </style>

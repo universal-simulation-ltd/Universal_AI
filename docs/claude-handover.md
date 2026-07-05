@@ -2,6 +2,52 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-05 (Generation-crash recovery + 0.5B model + light-mode contrast)
+
+Owner re-tested on iPhone after yesterday's fixes: model now LOADS, but typing a
+message → "thinking" → page dies mid-generation, chat wiped, model auto-reloads
+from cache. Root cause unchanged (WKWebView memory ceiling; 1B on WASM is
+marginal — generation working memory tips it over). This session: recover
+gracefully + give phones a model that actually fits, plus a light-mode pass.
+
+### Chat survives page death (`stores.ts`)
+- `messages` now persists to `localStorage['universal-ai:messages']` via a
+  400ms trailing-throttle subscriber, restored at module init.
+- Restore marks all messages `streaming: false`; if the LAST message was
+  persisted mid-stream, the page died generating → its content becomes (or gets
+  appended) an OOM notice: "ran out of memory while answering… try a shorter
+  question or a smaller model".
+- Privacy semantics preserved: `clearChat()` now ALSO clears the persisted copy
+  synchronously (pagehide-safe — the throttle timer would never fire there).
+  Clear-on-close wipes on intentional close/reload; a real crash fires no
+  pagehide, so the chat survives exactly when we want it to. NOTE: testing
+  restore in a browser requires clearOnClose OFF (a manual reload fires
+  pagehide and wipes — that confused verification twice).
+
+### Qwen2.5 0.5B model (`models.ts`, `stores.ts`)
+- New first list entry `qwen2.5-0.5b` (~0.4GB): webllm
+  `Qwen2.5-0.5B-Instruct-q4f16_1-MLC` (verified in web-llm 0.2.79 prebuilts) +
+  wllama `bartowski/Qwen2.5-0.5B-Instruct-GGUF / …Q4_K_M.gguf` (filename
+  verified via HF API).
+- `DEFAULT_MODEL_ID` now explicitly `'llama-3.2-1b'` (no longer `MODELS[0]`).
+  `detectCapabilities()` overrides the default *selection* to the lightest
+  (`ramMB`) model on the wllama backend only — WebGPU devices keep 1B.
+- **If 0.5B still crashes on the owner's phone during generation**, next
+  levers: `n_ctx` 2048→1024 on wllama, and/or `flash_attn: true` +
+  `cache_type_v: 'q8_0'` (untested on the wasm build — test on device first).
+
+### Light-mode contrast (`app.css` + components)
+- New `--on-accent` var: `#07101f` (dark theme, pale accent) / `#fff` (light
+  theme, saturated `#2563eb` accent). Replaced all hardcoded `#07101f`
+  on-accent text: `button.primary`, tab count badge (App.svelte), theme
+  segmented control (CustomiseView), KnowledgeView toggle knob; also
+  MessageBubble `.cite` hover was `#fff`-on-accent (bad in dark) → on-accent.
+
+### State
+- Committed to main + pushed; built + `cap sync ios` done (owner builds in
+  Xcode). Browser-verified: light-mode white-on-blue, restore + OOM notice,
+  4-model dropdown with 0.5B first. svelte-check 0/0.
+
 ## Update — 2026-07-04 (Fix on-device OOM: load-crash loop + RAG "no available backend found")
 
 Owner reported two on-device (iPhone/WASM) failures: (1) page crash right after

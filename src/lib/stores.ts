@@ -70,8 +70,54 @@ export const loadedModelId = writable<string | null>(null)
  */
 export const downloadedModels = writable<Record<string, boolean>>({})
 
-export const messages = writable<UIMessage[]>([])
+// --- Conversation persistence across page deaths ---------------------------
+// iOS kills the whole page when memory peaks mid-generation; the app reloads
+// and, before this, the conversation (including the message just typed) was
+// simply gone. Persist the chat to localStorage (throttled, so streaming
+// doesn't hammer storage) and restore it on boot. Clear-on-close still wipes
+// it: clearChat() empties the store, which persists the empty list.
+const MESSAGES_KEY = 'universal-ai:messages'
+
+const OOM_NOTICE =
+  '⚠️ The app ran out of memory while answering and had to restart. Your chat ' +
+  'was saved. Try a shorter question — or switch to a smaller model in the ' +
+  'Customise tab.'
+
+function loadMessages(): UIMessage[] {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(MESSAGES_KEY) : null
+    if (!raw) return []
+    const list = JSON.parse(raw) as UIMessage[]
+    // A message persisted as `streaming` means the page died mid-generation —
+    // explain what happened in place of the answer that never finished.
+    const last = list[list.length - 1]
+    if (last?.role === 'assistant' && last.streaming) {
+      last.content = last.content.trim() ? `${last.content}\n\n${OOM_NOTICE}` : OOM_NOTICE
+    }
+    return list.map((m) => ({ ...m, streaming: false }))
+  } catch {
+    return []
+  }
+}
+
+export const messages = writable<UIMessage[]>(loadMessages())
 export const generating = writable(false)
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null
+messages.subscribe(() => {
+  // Trailing-edge throttle: token streaming updates the store many times a
+  // second; one write per 400ms is plenty (worst case a crash loses the last
+  // 400ms of streamed text, never the user's own message).
+  if (persistTimer) return
+  persistTimer = setTimeout(() => {
+    persistTimer = null
+    try {
+      localStorage.setItem(MESSAGES_KEY, JSON.stringify(get(messages)))
+    } catch {
+      // storage unavailable — chat won't survive a crash, same as before
+    }
+  }, 400)
+})
 
 export const kbs = writable<KnowledgeBase[]>([])
 
@@ -105,8 +151,16 @@ export async function detectCapabilities(): Promise<void> {
   const kind = await detectBackend()
   backend.set(kind)
   const runnable = modelsFor(kind)
-  if (!runnable.some((m) => m.id === get(modelId)) && runnable.length > 0) {
+  if (runnable.length === 0) return
+  if (!runnable.some((m) => m.id === get(modelId))) {
     modelId.set(runnable[0].id)
+  } else if (kind === 'wllama' && get(modelId) === DEFAULT_MODEL_ID) {
+    // CPU/WASM devices are the memory-tight ones: bigger models may load but
+    // get the page killed mid-generation. Suggest the lightest by default —
+    // the user can still pick a bigger one, and auto-load prefers whatever is
+    // already downloaded.
+    const lightest = [...runnable].sort((a, b) => a.ramMB - b.ramMB)[0]
+    modelId.set(lightest.id)
   }
 }
 
@@ -492,6 +546,17 @@ export async function stop(): Promise<void> {
 
 export function clearChat(): void {
   messages.set([])
+  // Wipe storage synchronously: clear-on-close calls this from `pagehide`,
+  // where the throttled persister's timeout would never get to run.
+  if (persistTimer) {
+    clearTimeout(persistTimer)
+    persistTimer = null
+  }
+  try {
+    localStorage.removeItem(MESSAGES_KEY)
+  } catch {
+    // storage unavailable — nothing persisted anyway
+  }
 }
 
 // --- Saved responses -----------------------------------------------------

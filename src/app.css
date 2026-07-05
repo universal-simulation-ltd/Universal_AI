@@ -7,6 +7,9 @@
   --text-dim: #95a0b4;
   --accent: #6ea8fe;
   --accent-press: #4d8bf0;
+  /* Text/icons rendered ON the accent colour. Dark ink works on the pale
+     dark-mode accent; light mode uses a saturated blue, so it needs white. */
+  --on-accent: #07101f;
   --user-bubble: #233044;
   --bot-bubble: #161b25;
   --danger: #ff6b6b;
@@ -41,6 +44,7 @@
   --text-dim: #5b6678;
   --accent: #2563eb;
   --accent-press: #1d4ed8;
+  --on-accent: #ffffff;
   --user-bubble: #dbeafe;
   --bot-bubble: #ffffff;
   --danger: #dc2626;
@@ -99,7 +103,7 @@ button:disabled { opacity: 0.45; cursor: default; }
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #07101f;
+  color: var(--on-accent);
   font-weight: 600;
 }
 button.primary:active { background: var(--accent-press); }

@@ -192,7 +192,7 @@
   .badge {
     margin-left: 0.35rem;
     background: var(--accent);
-    color: #07101f;
+    color: var(--on-accent);
     border-radius: 999px;
     padding: 0 0.4rem;
     font-size: 0.75rem;
