@@ -15,7 +15,6 @@
     consumeInterruptedLoad,
     kbs,
     saved,
-    online,
     engineStatus,
     engineError,
     modelId,
@@ -91,16 +90,20 @@
 
 <header class="topbar">
   <div class="brand">
-    <!-- Connection indicator: green = offline (private, the desired state),
-         red = online. Reflects reachability only; the app makes no network
-         calls unless web search is opted in. -->
+    <!-- Model indicator: green = a model is loaded and ready to chat,
+         amber = loading, red = load failed, grey = no model loaded. -->
     <span
       class="dot"
-      class:offline={!$online}
-      class:onlinedot={$online}
-      title={$online
-        ? 'Connected to the internet'
-        : 'Offline — fully private, no network access'}
+      class:ready={$engineStatus === 'ready'}
+      class:loading={$engineStatus === 'loading'}
+      class:error={$engineStatus === 'error'}
+      title={$engineStatus === 'ready'
+        ? 'Model loaded — ready to chat'
+        : $engineStatus === 'loading'
+          ? 'Loading model…'
+          : $engineStatus === 'error'
+            ? 'Model failed to load — see Customise'
+            : 'No model loaded — see Customise'}
     ></span>
     Universal&nbsp;AI
   </div>
@@ -153,11 +156,15 @@
     width: 9px;
     height: 9px;
     border-radius: 50%;
+    background: var(--text-dim); /* grey = no model loaded */
     transition: background 0.2s ease, box-shadow 0.2s ease;
   }
-  /* Green = offline (private). Red = connected. */
-  .dot.offline { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-  .dot.onlinedot { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .dot.ready { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .dot.loading { background: #e8a33d; box-shadow: 0 0 8px #e8a33d; animation: dot-pulse 1.2s ease-in-out infinite; }
+  .dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  @keyframes dot-pulse {
+    50% { opacity: 0.45; }
+  }
   .tabs {
     display: flex;
     gap: 0.35rem;
