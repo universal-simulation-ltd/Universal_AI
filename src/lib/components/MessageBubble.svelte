@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { saved, saveResponse, unsaveResponse, send, type UIMessage, type Confidence } from '../stores'
+  import { saved, saveResponse, unsaveResponse, send, doubleCheckOnline, type UIMessage, type Confidence } from '../stores'
   let { msg }: { msg: UIMessage } = $props()
 
   // --- Long-press menu -----------------------------------------------------
@@ -101,6 +101,26 @@
     low: 'Low confidence',
   }
 
+  // Bar fill: proportional to the raw top source-match score when we have it
+  // (cosine ~0.8 reads as full), else a sensible fill for the band alone. Floored
+  // so even a low bar is visible.
+  let confFill = $derived(
+    msg.confidenceScore != null
+      ? Math.max(8, Math.min(100, Math.round((msg.confidenceScore / 0.8) * 100)))
+      : msg.confidence === 'high'
+        ? 100
+        : msg.confidence === 'medium'
+          ? 62
+          : 30,
+  )
+  // "Web-checked" when at least one cited source is a live web link (opt-in web
+  // search) or an online double-check has attached web sources; otherwise the
+  // answer is grounded purely in on-device knowledge.
+  let webVerified = $derived(citedSources.some((s) => !!s.url) || (msg.webSources?.length ?? 0) > 0)
+  let hasSources = $derived(citedSources.length > 0 || (msg.webSources?.length ?? 0) > 0)
+  // Footer (confidence / provenance / double-check) shows on any finished answer.
+  let showFooter = $derived(msg.role === 'assistant' && !msg.streaming && !!msg.content)
+
   function askOpen(url: string) {
     pendingUrl = url
   }
@@ -133,20 +153,49 @@
       <span class="typing"><i></i><i></i><i></i></span>
     {/if}
 
-    {#if citedSources.length}
+    {#if showFooter}
       <div class="meta">
         {#if msg.confidence}
-          <span class="conf {msg.confidence}" title="Based on how closely the cited sources match your question">
-            {CONF_LABEL[msg.confidence]}
-          </span>
+          <div
+            class="conf {msg.confidence}"
+            title="How closely the cited sources match your question — a measure of how well-supported the answer is, not a guarantee of factual accuracy."
+          >
+            <span class="conf-label">{CONF_LABEL[msg.confidence]}</span>
+            <span class="conf-track"><span class="conf-fill" style="width:{confFill}%"></span></span>
+          </div>
         {/if}
-        <button class="src-toggle" aria-expanded={sourcesOpen} onclick={() => (sourcesOpen = !sourcesOpen)}>
-          Sources ({citedSources.length})
-          <span class="chev" class:open={sourcesOpen} aria-hidden="true">▾</span>
-        </button>
+        <div class="meta-row">
+          {#if hasSources}
+            <span
+              class="prov"
+              class:web={webVerified}
+              title={webVerified
+                ? 'At least one source is a live web link you can open and verify.'
+                : 'Answered from knowledge stored on your device.'}
+            >
+              {webVerified ? '🌐 Web-checked' : '📚 On-device'}
+            </span>
+          {/if}
+          <div class="foot-actions">
+            {#if msg.webChecking}
+              <span class="dc-status"><span class="dc-spin" aria-hidden="true"></span> Checking the web…</span>
+            {:else if msg.query && !msg.webSources}
+              <button class="dc-btn" onclick={() => doubleCheckOnline(msg.id)} title="Search the web to corroborate this answer">
+                🌐 Double-check online
+              </button>
+            {/if}
+            {#if citedSources.length}
+              <button class="src-toggle" class:open={sourcesOpen} aria-expanded={sourcesOpen} onclick={() => (sourcesOpen = !sourcesOpen)}>
+                References ({citedSources.length})
+                <span class="chev" class:open={sourcesOpen} aria-hidden="true">▾</span>
+              </button>
+            {/if}
+          </div>
+        </div>
+        {#if msg.webCheckNote}<p class="dc-note">{msg.webCheckNote}</p>{/if}
       </div>
 
-      {#if sourcesOpen}
+      {#if sourcesOpen && citedSources.length}
         <ol class="sources">
           {#each citedSources as src}
             <li class:active={active === src.n}>
@@ -170,6 +219,33 @@
             </li>
           {/each}
         </ol>
+      {/if}
+
+      {#if msg.webSources?.length}
+        <div class="webcheck">
+          <div class="wc-head">🌐 Web double-check — corroborating sources</div>
+          <ol class="sources">
+            {#each msg.webSources as src}
+              <li>
+                <div class="src-head">{src.source}</div>
+                {#if src.snippet}<p class="snippet">{src.snippet}{src.snippet.length >= 320 ? '…' : ''}</p>{/if}
+                {#if src.url}
+                  {#if pendingUrl === src.url}
+                    <div class="confirm">
+                      <span>Open this link in your web browser?</span>
+                      <div class="confirm-actions">
+                        <button class="primary tiny" onclick={confirmOpen}>Open</button>
+                        <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
+                      </div>
+                    </div>
+                  {:else}
+                    <button class="link" onclick={() => askOpen(src.url!)}>🔗 {src.url}</button>
+                  {/if}
+                {/if}
+              </li>
+            {/each}
+          </ol>
+        </div>
       {/if}
     {/if}
 
@@ -292,34 +368,81 @@
 
   .meta {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.45rem;
     margin-top: 0.55rem;
     padding-top: 0.4rem;
     border-top: 1px dashed var(--border);
   }
-  .conf {
-    font-size: 0.68rem;
-    font-weight: 700;
-    padding: 0.1rem 0.45rem;
+  /* Confidence bar */
+  .conf { display: flex; align-items: center; gap: 0.5rem; }
+  .conf-label { font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+  .conf-track {
+    flex: 1 1 auto;
+    height: 6px;
     border-radius: 999px;
+    background: var(--surface-2);
     border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .conf-fill { display: block; height: 100%; border-radius: 999px; transition: width 0.35s ease; }
+  .conf.high .conf-label { color: var(--ok); }
+  .conf.high .conf-fill { background: var(--ok); }
+  .conf.medium .conf-label { color: #d9a106; }
+  .conf.medium .conf-fill { background: #d9a106; }
+  .conf.low .conf-label { color: var(--danger); }
+  .conf.low .conf-fill { background: var(--danger); }
+  .meta-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .prov {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    padding: 0.1rem 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
     white-space: nowrap;
   }
-  .conf.high { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
-  .conf.medium { color: #d9a106; border-color: color-mix(in srgb, #d9a106 45%, var(--border)); }
-  .conf.low { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
-  .src-toggle {
-    margin-left: auto;
-    font-size: 0.74rem;
+  .prov.web { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  .foot-actions { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .dc-btn {
+    font-size: 0.72rem;
     padding: 0.2rem 0.5rem;
     background: transparent;
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .dc-status {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-size: 0.72rem; color: var(--text-dim); white-space: nowrap;
+  }
+  .dc-spin {
+    width: 11px; height: 11px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    animation: dc-spin 0.7s linear infinite;
+  }
+  @keyframes dc-spin { to { transform: rotate(360deg); } }
+  .dc-note { margin: 0.1rem 0 0; font-size: 0.74rem; color: var(--text-dim); }
+  .src-toggle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    background: var(--surface-2);
     color: var(--text-dim);
+    border: 1px solid var(--border);
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
+    white-space: nowrap;
+  }
+  .src-toggle:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  .src-toggle.open { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+  .webcheck { margin-top: 0.5rem; }
+  .wc-head {
+    font-size: 0.72rem; font-weight: 700; color: var(--accent);
+    margin-bottom: 0.35rem;
   }
   .chev { transition: transform 0.15s ease; display: inline-block; }
   .chev.open { transform: rotate(180deg); }

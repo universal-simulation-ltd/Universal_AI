@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-fogg",
+  "name": "Travel & geography",
+  "version": 1,
+  "bin": "persona-fogg.v1.bin",
+  "dim": 384,
+  "count": 1049,
+  "unit": "entries",
+  "description": "Countries, capitals, landmarks & world cultures",
+  "scale": 127,
+  "bytes": 658549,
+  "approxMB": 0.6
+}

@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-nemo",
+  "name": "Science & the sea",
+  "version": 1,
+  "bin": "persona-nemo.v1.bin",
+  "dim": 384,
+  "count": 530,
+  "unit": "entries",
+  "description": "Oceans, marine life, ships & natural science",
+  "scale": 127,
+  "bytes": 339395,
+  "approxMB": 0.3
+}

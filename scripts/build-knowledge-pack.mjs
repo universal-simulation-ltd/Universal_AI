@@ -191,13 +191,33 @@ async function fromParquet(path, limit) {
 async function fromJsonl(file, limit) {
   const raw = await readFile(file, 'utf8')
   const items = []
+  const seen = new Set()
+  let badJson = 0
+  let dupes = 0
+  let lineNo = 0
   for (const line of raw.split('\n')) {
+    lineNo++
     if (!line.trim()) continue
-    const obj = JSON.parse(line)
+    let obj
+    try {
+      obj = JSON.parse(line)
+    } catch {
+      badJson++ // tolerate an imperfect line rather than aborting the whole build
+      continue
+    }
     const intro = cleanIntro(obj.text ?? '')
     if (!isUsable(obj.title ?? '', intro)) continue
+    const key = String(obj.title).trim().toLowerCase()
+    if (seen.has(key)) {
+      dupes++
+      continue
+    }
+    seen.add(key)
     items.push({ title: String(obj.title), text: intro })
     if (items.length >= limit) break
+  }
+  if (badJson || dupes) {
+    console.log(`  jsonl: skipped ${badJson} invalid line(s), ${dupes} duplicate title(s)`)
   }
   return items
 }

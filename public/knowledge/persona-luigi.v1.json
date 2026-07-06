@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-luigi",
+  "name": "Cooking & recipes",
+  "version": 1,
+  "bin": "persona-luigi.v1.bin",
+  "dim": 384,
+  "count": 822,
+  "unit": "entries",
+  "description": "Recipes, techniques, ingredients & world cuisines",
+  "scale": 127,
+  "bytes": 585546,
+  "approxMB": 0.6
+}

@@ -41,17 +41,57 @@ const KNOWLEDGE_BASE = '/knowledge/'
 export interface BuiltinPackDef {
   id: string
   manifestUrl: string
+  /**
+   * If set, this pack is a character's subject knowledge (keyed by persona id
+   * from personas.ts). Such packs are surfaced on the expert cards in the
+   * Knowledge tab — not in the generic "Knowledge bases" list — and are enabled
+   * for retrieval only while that character is the active one.
+   */
+  personaId?: string
 }
 
 /**
  * The built-in packs the app knows how to seed, download and search. Each entry
  * points at a manifest produced by scripts/build-knowledge-pack.mjs. Bump the
  * versioned filename here alongside the pack version when rebuilding.
+ *
+ * The first two are general-purpose packs shown in the Knowledge-bases list; the
+ * rest are per-character knowledge (one sizeable pack each), downloaded from the
+ * expert cards and activated when that character is selected.
  */
 export const BUILTIN_PACKS: BuiltinPackDef[] = [
   { id: 'builtin:simplewiki', manifestUrl: `${KNOWLEDGE_BASE}simplewiki.v1.json` },
   { id: 'builtin:wset-wine', manifestUrl: `${KNOWLEDGE_BASE}wset-wine.v1.json` },
+  { id: 'builtin:kb-luigi', manifestUrl: `${KNOWLEDGE_BASE}persona-luigi.v1.json`, personaId: 'luigi-chef' },
+  { id: 'builtin:kb-sherlock', manifestUrl: `${KNOWLEDGE_BASE}persona-sherlock.v1.json`, personaId: 'sherlock-holmes' },
+  { id: 'builtin:kb-nemo', manifestUrl: `${KNOWLEDGE_BASE}persona-nemo.v1.json`, personaId: 'captain-nemo' },
+  { id: 'builtin:kb-alice', manifestUrl: `${KNOWLEDGE_BASE}persona-alice.v1.json`, personaId: 'alice' },
+  { id: 'builtin:kb-mowgli', manifestUrl: `${KNOWLEDGE_BASE}persona-mowgli.v1.json`, personaId: 'mowgli' },
+  { id: 'builtin:kb-elizabeth', manifestUrl: `${KNOWLEDGE_BASE}persona-elizabeth.v1.json`, personaId: 'elizabeth-bennet' },
+  { id: 'builtin:kb-merlin', manifestUrl: `${KNOWLEDGE_BASE}persona-merlin.v1.json`, personaId: 'merlin' },
+  { id: 'builtin:kb-fogg', manifestUrl: `${KNOWLEDGE_BASE}persona-fogg.v1.json`, personaId: 'phileas-fogg' },
 ]
+
+/** The pack id holding a given character's knowledge, or undefined if none. */
+export function personaPackId(personaId: string | undefined | null): string | undefined {
+  if (!personaId) return undefined
+  return BUILTIN_PACKS.find((p) => p.personaId === personaId)?.id
+}
+
+/** Whether a pack id belongs to a character's knowledge (vs a general pack). */
+export function isPersonaPackId(id: string): boolean {
+  return BUILTIN_PACKS.some((p) => p.id === id && p.personaId != null)
+}
+
+/** The persona id a character pack belongs to, or undefined for general packs. */
+export function personaIdForPackId(id: string): string | undefined {
+  return BUILTIN_PACKS.find((p) => p.id === id)?.personaId
+}
+
+/** Whether a character ships a downloadable knowledge pack. */
+export function hasPersonaPack(personaId: string | undefined | null): boolean {
+  return personaPackId(personaId) != null
+}
 
 function manifestUrlFor(id: string): string {
   const def = BUILTIN_PACKS.find((p) => p.id === id)

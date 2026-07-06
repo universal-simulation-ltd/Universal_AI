@@ -1,9 +1,11 @@
 // Characters ("Knowledges") the user can pick to give the assistant a
 // personality and real expertise in a subject. Each pairs a personality prompt
-// (below) with a bundled body of subject knowledge (see personaKnowledge.ts)
-// that is embedded onto the device when the character is selected and retrieved
+// (below) with a sizeable, downloadable knowledge pack (a `builtin:kb-*` pack —
+// see BUILTIN_PACKS in rag/pack.ts, built by scripts/build-knowledge-pack.mjs)
+// that is fetched from the character's card in the Knowledge tab and retrieved
 // from while chatting — so e.g. Luigi the Chef actually answers from cooking
-// knowledge, with citations, not just in a chef's voice. It all works offline.
+// knowledge, with citations, not just in a chef's voice. Once downloaded it all
+// works offline.
 //
 // Names are either original ("Luigi the Chef" — evokes a friendly Italian cook
 // without using anyone's trademark) or drawn from widely-recognised

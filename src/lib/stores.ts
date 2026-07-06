@@ -15,20 +15,25 @@ import {
   listKBs,
   putKB,
   deleteKB as deleteKBRecord,
-  ingestDocument,
   retrieve,
   webSearch,
   fetchManifest,
   loadPack,
   unloadPack,
   BUILTIN_PACKS,
+  personaPackId,
+  isPersonaPackId,
   warmEmbeddings,
   type KnowledgeBase,
   type RetrievedChunk,
 } from './rag'
 import { settings } from './settings'
 import { getPersona } from './personas'
-import { PERSONA_KNOWLEDGE, PERSONA_KB_PREFIX, personaKbId } from './personaKnowledge'
+
+// Legacy: the first cut of persona knowledge embedded a small bundled corpus
+// into a `persona:`-prefixed KB on device. That path is gone (each character now
+// has a downloadable pre-embedded pack); these rows are cleaned up on startup.
+const LEGACY_PERSONA_KB_PREFIX = 'persona:'
 
 /** A numbered reference, mapping an inline [n] marker to its source. */
 export interface Citation {
@@ -52,6 +57,16 @@ export interface UIMessage {
   sources?: Citation[]
   /** How well the cited sources matched the question (grounded answers only). */
   confidence?: Confidence
+  /** Raw top source-match score (0..1) behind `confidence` — drives the bar fill. */
+  confidenceScore?: number
+  /** The user question this answer responded to — used by "double-check online". */
+  query?: string
+  /** True while an on-demand web double-check is running for this answer. */
+  webChecking?: boolean
+  /** Corroborating web results from a double-check (each carries a real URL). */
+  webSources?: Citation[]
+  /** Set when a double-check ran but found nothing, or couldn't run. */
+  webCheckNote?: string
   streaming?: boolean
 }
 
@@ -125,18 +140,6 @@ messages.subscribe(() => {
 export const kbs = writable<KnowledgeBase[]>([])
 
 /**
- * While a character's knowledge is being embedded onto the device for the first
- * time, this holds { id, done, total } so the UI can show a "loading knowledge"
- * progress; null when idle. Enabling an already-embedded character is instant
- * and never sets this.
- */
-export const personaKnowledgeStatus = writable<{
-  id: string
-  done: number
-  total: number
-} | null>(null)
-
-/**
  * Whether the device currently has network access. The connection indicator
  * reads this: green = offline (private, the desired state), red = online. It
  * reflects reachability only — the app still makes no network calls unless the
@@ -202,20 +205,20 @@ export async function removeKB(kb: KnowledgeBase): Promise<void> {
   await refreshKBs()
 }
 
-// A character's knowledge is a normal KB, namespaced `persona:<id>`. It is
-// embedded on-device the first time the character is selected, then simply
-// re-enabled thereafter. Only the active character's knowledge stays enabled —
-// switching characters swaps which one is on, leaving the user's own KBs alone.
-// Applications are serialized so rapid persona switches can't interleave.
+// A character's knowledge is a downloadable, pre-embedded pack (a `builtin:kb-*`
+// KB, see BUILTIN_PACKS). Only the active character's pack stays enabled for
+// retrieval — switching characters swaps which one is on, leaving the user's own
+// KBs and the general packs alone. A character whose pack isn't downloaded yet
+// still works as a personality; its knowledge simply isn't grounded until the
+// pack is fetched from its expert card. Applications are serialized so rapid
+// persona switches can't interleave.
 let personaApplyChain: Promise<void> = Promise.resolve()
 
 /**
- * Make the given character's subject knowledge the active persona KB: enable it
- * (embedding it first if this is its first use) and disable every other
- * character's knowledge. Pass an empty id for the plain assistant, which just
- * turns all character knowledge off. Best-effort — if embedding can't run
- * (offline before the embedder is cached, or memory-starved) the character's
- * personality still applies; the knowledge simply isn't grounded this time.
+ * Reconcile which character pack is enabled for retrieval to match the given
+ * persona: enable that character's pack if it's downloaded, and disable every
+ * other character's pack. Pass an empty id for the plain assistant, which just
+ * turns all character knowledge off.
  */
 export function applyPersonaKnowledge(personaId: string): Promise<void> {
   personaApplyChain = personaApplyChain.then(() => doApplyPersonaKnowledge(personaId))
@@ -223,49 +226,37 @@ export function applyPersonaKnowledge(personaId: string): Promise<void> {
 }
 
 async function doApplyPersonaKnowledge(personaId: string): Promise<void> {
-  const targetId = personaId ? personaKbId(personaId) : ''
+  const targetId = personaId ? personaPackId(personaId) : undefined
   let changed = false
 
-  // Turn off any other character's knowledge so only the chosen one is active.
+  // Turn off any other character's pack so only the chosen one is active.
   for (const kb of get(kbs)) {
-    if (kb.id.startsWith(PERSONA_KB_PREFIX) && kb.id !== targetId && kb.enabled) {
+    if (isPersonaPackId(kb.id) && kb.id !== targetId && kb.enabled) {
       await putKB({ ...kb, enabled: false })
       changed = true
     }
   }
 
-  if (targetId) {
+  // Enable the chosen character's pack — but only if it's been downloaded.
+  if (targetId && get(builtinInstalled)[targetId]) {
     const existing = get(kbs).find((k) => k.id === targetId)
-    if (existing) {
-      if (!existing.enabled) {
-        await putKB({ ...existing, enabled: true })
-        changed = true
-      }
+    if (existing && !existing.enabled) {
+      await putKB({ ...existing, enabled: true })
+      changed = true
       // Retrieval will need the embedder — warm it now, with memory headroom.
       void warmEmbeddings()
-    } else if (PERSONA_KNOWLEDGE[personaId]?.trim()) {
-      // First use of this character — embed its knowledge onto the device.
-      const persona = getPersona(personaId)
-      personaKnowledgeStatus.set({ id: personaId, done: 0, total: 1 })
-      try {
-        await warmEmbeddings()
-        await ingestDocument(
-          `${persona.name} — ${persona.domain}`,
-          PERSONA_KNOWLEDGE[personaId],
-          persona.name,
-          (done, total) => personaKnowledgeStatus.set({ id: personaId, done, total }),
-          { id: targetId, enabled: true },
-        )
-        changed = true
-      } catch (err) {
-        console.warn('Could not load character knowledge — using personality only:', err)
-      } finally {
-        personaKnowledgeStatus.set(null)
-      }
     }
   }
 
   if (changed) await refreshKBs()
+}
+
+/** One-time cleanup of the retired on-device persona KBs (`persona:<id>`). */
+async function cleanupLegacyPersonaKBs(): Promise<void> {
+  const stale = get(kbs).filter((k) => k.id.startsWith(LEGACY_PERSONA_KB_PREFIX))
+  if (stale.length === 0) return
+  for (const kb of stale) await deleteKBRecord(kb.id)
+  await refreshKBs()
 }
 
 // --- Built-in, pre-embedded knowledge packs ------------------------------
@@ -296,6 +287,7 @@ export const builtinDownloadProgress = writable<Record<string, number | null>>({
  * assets aren't present. Idempotent — never resets the user's enabled flag.
  */
 export async function seedBuiltinKBs(): Promise<void> {
+  await cleanupLegacyPersonaKBs()
   for (const def of BUILTIN_PACKS) {
     try {
       const manifest = await fetchManifest(def.id)
@@ -335,7 +327,12 @@ export async function loadPacksIntoMemory(): Promise<void> {
   }
 }
 
-/** Download + cache a built-in pack, then enable it for retrieval. */
+/**
+ * Download + cache a built-in pack. A general pack is enabled for retrieval
+ * straight away; a character pack is only enabled if that character is the one
+ * currently selected (so downloading Luigi's pack while the plain assistant is
+ * active just stocks it, ready for when you pick him).
+ */
 export async function installBuiltinPack(id: string): Promise<void> {
   builtinDownloadProgress.update((p) => ({ ...p, [id]: 0 }))
   try {
@@ -348,11 +345,17 @@ export async function installBuiltinPack(id: string): Promise<void> {
       // storage unavailable — pack still works for this session
     }
     builtinInstalled.update((s) => ({ ...s, [id]: true }))
-    const row = get(kbs).find((k) => k.id === id)
-    if (row) await putKB({ ...row, enabled: true })
-    await refreshKBs()
-    // Pack installed + enabled → chats will retrieve from it; warm the embedder
-    // now (also gets its weights browser-cached while the device is online).
+    if (isPersonaPackId(id)) {
+      // Reconcile against the active character: enables this pack iff it's the
+      // selected one, and leaves every other character's pack off.
+      await applyPersonaKnowledge(get(settings).personaId ?? '')
+    } else {
+      const row = get(kbs).find((k) => k.id === id)
+      if (row) await putKB({ ...row, enabled: true })
+      await refreshKBs()
+    }
+    // Pack installed → chats may retrieve from it; warm the embedder now (also
+    // gets its weights browser-cached while the device is online).
     void warmEmbeddings()
   } finally {
     builtinDownloadProgress.update((p) => ({ ...p, [id]: null }))
@@ -525,7 +528,7 @@ export async function send(userText: string): Promise<void> {
   if (!text || get(generating) || get(engineStatus) !== 'ready' || !engine) return
 
   const userMsg: UIMessage = { id: uid(), role: 'user', content: text }
-  const botMsg: UIMessage = { id: uid(), role: 'assistant', content: '', streaming: true }
+  const botMsg: UIMessage = { id: uid(), role: 'assistant', content: '', streaming: true, query: text }
   messages.update((m) => [...m, userMsg, botMsg])
   generating.set(true)
 
@@ -557,6 +560,7 @@ export async function send(userText: string): Promise<void> {
     const enabled = get(kbs).filter((k) => k.enabled).map((k) => k.id)
     let sources: Citation[] = []
     let confidence: Confidence | undefined
+    let confidenceScore: number | undefined
 
     // Gather candidate passages from local KBs and, if opted in + online, the web.
     // Retrieval is best-effort: if the embedder can't run (its WASM heap can
@@ -588,6 +592,7 @@ export async function send(userText: string): Promise<void> {
           url: h.url,
         }))
         confidence = scoreToConfidence(relevant[0].score)
+        confidenceScore = relevant[0].score
       }
     }
 
@@ -617,6 +622,7 @@ export async function send(userText: string): Promise<void> {
               streaming: false,
               sources: sources.length ? sources : undefined,
               confidence: sources.length ? confidence : undefined,
+              confidenceScore: sources.length ? confidenceScore : undefined,
             }
           : m,
       ),
@@ -637,6 +643,48 @@ export async function send(userText: string): Promise<void> {
 
 export async function stop(): Promise<void> {
   await engine?.interrupt()
+}
+
+function patchMessage(id: string, patch: Partial<UIMessage>): void {
+  messages.update((all) => all.map((m) => (m.id === id ? { ...m, ...patch } : m)))
+}
+
+/**
+ * On-demand "double-check online": re-run the answer's question through the web
+ * search pipeline (Wikipedia) and attach any corroborating web results to the
+ * message, so the user can verify a local answer against a live source. Opt-in
+ * per answer (clicking is the consent), independent of the always-on web-search
+ * toggle. Best-effort and never throws.
+ */
+export async function doubleCheckOnline(id: string): Promise<void> {
+  const msg = get(messages).find((m) => m.id === id)
+  if (!msg || msg.role !== 'assistant' || msg.webChecking) return
+  const query = (msg.query ?? '').trim()
+  if (!query) return
+  if (!get(online)) {
+    patchMessage(id, { webCheckNote: 'You appear to be offline — connect to double-check on the web.' })
+    return
+  }
+  patchMessage(id, { webChecking: true, webCheckNote: undefined, webSources: undefined })
+  try {
+    const hits = (await webSearch(query, 4))
+      .filter((h) => h.score > 0.25)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+    if (hits.length === 0) {
+      patchMessage(id, { webChecking: false, webCheckNote: 'No corroborating web results found.' })
+      return
+    }
+    const webSources: Citation[] = hits.map((h, i) => ({
+      n: i + 1,
+      source: h.source,
+      snippet: h.text.slice(0, 320),
+      url: h.url,
+    }))
+    patchMessage(id, { webChecking: false, webSources, webCheckNote: undefined })
+  } catch {
+    patchMessage(id, { webChecking: false, webCheckNote: 'Web check failed — please try again.' })
+  }
 }
 
 export function clearChat(): void {

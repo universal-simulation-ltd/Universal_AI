@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-merlin",
+  "name": "Wisdom & advice",
+  "version": 1,
+  "bin": "persona-merlin.v1.bin",
+  "dim": 384,
+  "count": 647,
+  "unit": "entries",
+  "description": "Proverbs, philosophy, mental models & life advice",
+  "scale": 127,
+  "bytes": 472002,
+  "approxMB": 0.5
+}

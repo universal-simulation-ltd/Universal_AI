@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-alice",
+  "name": "Stories & writing",
+  "version": 1,
+  "bin": "persona-alice.v1.bin",
+  "dim": 384,
+  "count": 624,
+  "unit": "entries",
+  "description": "Story craft, literary devices, genres & poetry",
+  "scale": 127,
+  "bytes": 436384,
+  "approxMB": 0.4
+}

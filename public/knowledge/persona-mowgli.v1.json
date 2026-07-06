@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-mowgli",
+  "name": "Wilderness & the outdoors",
+  "version": 1,
+  "bin": "persona-mowgli.v1.bin",
+  "dim": 384,
+  "count": 1011,
+  "unit": "entries",
+  "description": "Survival, first aid, plants, animals & the outdoors",
+  "scale": 127,
+  "bytes": 786811,
+  "approxMB": 0.8
+}

@@ -2,6 +2,101 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-07-06 (Confidence bar + source provenance on answers)
+
+Made the existing answer-confidence signal visual, in `MessageBubble.svelte`.
+
+- **Confidence bar** — the old text-only "High/Medium/Low confidence" pill is now
+  a label + horizontal **fill bar**, coloured by band (green/amber/red). Fill is
+  proportional to the raw top source-match score: `stores.ts` `send()` now also
+  stashes `confidenceScore` (0..1, the top retrieval cosine) on the `UIMessage`
+  alongside the band; the bar fills to `min(100, score/0.8*100)` (floored at 8%),
+  falling back to per-band fills for older messages without a score.
+- **Provenance badge** — each grounded answer shows **🌐 Web-checked** when any
+  cited source carries a live URL (opt-in web search), else **📚 On-device**.
+- Honest labelling: the tooltip says confidence reflects *how well-supported by
+  sources* the answer is, **not** guaranteed factual accuracy (it's the retrieval
+  cosine, not model certainty).
+- The confidence bar only appears on answers that cite sources; the double-check
+  button (below) appears on any finished answer.
+- The sources disclosure is now a clickable **pill labelled "References (N)"**
+  (was a flat "Sources (N)" text button); it turns accent when expanded.
+
+### On-demand "Double-check online"
+- Every finished answer shows a **🌐 Double-check online** button. It re-runs the
+  answer's question through the existing web-search pipeline (`webSearch`,
+  Wikipedia) and attaches the corroborating web results under the answer in a
+  "Web double-check" section (with openable links), flipping the provenance badge
+  to 🌐 Web-checked. `stores.ts` `doubleCheckOnline(id)` + `UIMessage.query`
+  (stashed on send) / `webChecking` / `webSources` / `webCheckNote`.
+- Opt-in per answer (the click is the consent) — independent of the always-on
+  web-search toggle. Best-effort: offline → a note; no hits → a note.
+- **Provider = Wikipedia**, not DuckDuckGo (DDG has no clean CORS JSON API). The
+  pipeline is provider-agnostic (`fetchRawResults` in `rag/websearch.ts`) if a
+  keyed web API is wanted later.
+
+## Update — 2026-07-06 (Characters moved to Knowledge tab + per-character downloadable RAG packs)
+
+Two connected changes to how "characters" (personas) and their knowledge work.
+
+### 1. Characters unified INTO the Knowledge-bases list
+- Removed the whole **Character** section from `CustomiseView.svelte` (plus its
+  now-dead imports/CSS). Customise is now: Appearance, AI model, Names, Web
+  search, Privacy & Safety, Universal ID.
+- `KnowledgeView.svelte` was rebuilt around **one unified "Knowledge bases"
+  list**: characters first (canonical `BUILTIN_PACKS`/`personas.ts` order, Luigi
+  first), then general packs (Simple Wikipedia, Wine), then the user's own KBs,
+  then an "Add your own knowledge" section. **A character IS its knowledge pack**
+  — there is no separate "select character" vs "download knowledge" step:
+  Download = become that character; a per-row **toggle** turns the active
+  character on/off (only one active at a time); 🗑 removes the download; an **(i)**
+  button expands an "about + Knows about" panel. (An earlier iteration had a
+  separate "Expert characters" card section — that was replaced by this unified
+  list per the user's request.)
+- `WelcomeGate.svelte` onboarding picker left in place; its 📚 badge + copy
+  updated to reflect download-only knowledge.
+
+### 2. Each character now has a sizeable, downloadable, pre-embedded RAG pack
+- **Design decision (user-chosen):** *Large* packs, **download-only** — the old
+  small bundled on-device persona corpus (`personaKnowledge.ts` + `src/lib/
+  knowledge/personas/*.md`) was **deleted**. A character has personality only
+  until you download its pack from its card in the Knowledge tab.
+- Persona packs are ordinary **built-in packs** (`builtin:kb-*`) — same machinery
+  as the Simple-Wikipedia / wine packs. Registered in `rag/pack.ts` `BUILTIN_PACKS`
+  with a `personaId` link + helpers `personaPackId` / `isPersonaPackId` /
+  `hasPersonaPack`. Persona packs are hidden from the generic "Knowledge bases"
+  list (filtered by `isPersonaPackId`) and surfaced only on the expert cards.
+- `stores.ts`: `applyPersonaKnowledge` rewritten to enable the selected
+  character's pack (iff downloaded) and disable all other character packs;
+  removed the on-device embedding path + `personaKnowledgeStatus`;
+  `installBuiltinPack` is now persona-aware (a character pack only auto-enables
+  if that character is the active one); added one-time cleanup of legacy
+  `persona:` KBs (`cleanupLegacyPersonaKBs`, runs in `seedBuiltinKBs`).
+- **Corpora** authored under `scripts/data/personas/<id>.jsonl` (one
+  `{"title","text"}` per line). Built into `public/knowledge/persona-*.v1.{bin,json}`
+  by **`scripts/build-persona-packs.sh`** (wraps `build-knowledge-pack.mjs`,
+  which now skips malformed lines + dedupes titles). Rebuild: `bash
+  scripts/build-persona-packs.sh` (or `… <persona-id>` for one).
+- **Pack counts (v1):** Luigi 822 · Sherlock 884 · Nemo 530 · Alice 624 ·
+  Mowgli 1011 · Elizabeth 535 · Merlin 647 · Fogg 1049 (~5,500 entries, ~4.1 MB
+  total, 0.3–0.8 MB each). Luigi was topped up from an initial 248 (a second
+  authoring pass added 574 deduped entries).
+
+### Verified
+- `svelte-check` 0 errors/warnings; `npm run build` green (all 8 pack manifests
+  land in `dist/knowledge/`).
+- Mobile preview: all 8 cards show correct sizes; download→install→"on-device",
+  select→"active", switch-away→deactivates, packs stay out of the generic KB
+  list; no console errors. (Retrieval grounding itself not re-run — identical
+  mechanism to the existing wine/wiki packs.)
+
+### Deploy state
+- Committed to local `main`; web rebuilt (`npm run build`) + `npx cap sync ios`.
+  Covers this whole session: unified Knowledge/characters list, per-character
+  packs, confidence bar + provenance badge + double-check, "References" pill.
+  **Not pushed** — run `/signoff` (or `git push`) to publish. Owner builds/runs
+  in Xcode (`App` scheme).
+
 ## Update — 2026-07-05 (Welcome-gate character grid: horizontal-fit fix + copy)
 
 Small UI polish pass on the first-run `WelcomeGate` character picker, all in

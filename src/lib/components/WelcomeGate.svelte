@@ -10,7 +10,7 @@
   } from '../stores'
   import { settings, setPersona } from '../settings'
   import { ALL_PERSONAS, getPersona } from '../personas'
-  import { hasPersonaKnowledge } from '../personaKnowledge'
+  import { hasPersonaPack } from '../rag'
 
   // First-run welcome + model gate. Shown (by App.svelte) until a model has been
   // downloaded on this device. It cannot be dismissed without picking + loading a
@@ -56,9 +56,9 @@
     <div class="field">
       <span class="label">2. Pick your expert helper</span>
       <p class="sub">
-        Each has their own personality and real knowledge of a subject, which
-        loads onto your device with the model. Tap one to choose it — you can
-        switch anytime in Customise.
+        Each has their own personality, plus a downloadable pack of real subject
+        knowledge you can add later from the Knowledge tab. Tap one to choose it —
+        you can switch anytime.
       </p>
       <div class="personas" role="radiogroup" aria-label="Choose a character">
         {#each ALL_PERSONAS as p}
@@ -76,8 +76,8 @@
               <span class="p-name">{p.name}</span>
               <span class="p-domain">{p.domain}</span>
             </span>
-            {#if hasPersonaKnowledge(p.id)}
-              <span class="p-book" title="Comes with subject knowledge" aria-hidden="true">📚</span>
+            {#if hasPersonaPack(p.id)}
+              <span class="p-book" title="Has a downloadable knowledge pack" aria-hidden="true">📚</span>
             {/if}
           </button>
         {/each}

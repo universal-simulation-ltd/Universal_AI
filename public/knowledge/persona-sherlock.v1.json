@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-sherlock",
+  "name": "Logic & deduction",
+  "version": 1,
+  "bin": "persona-sherlock.v1.bin",
+  "dim": 384,
+  "count": 884,
+  "unit": "entries",
+  "description": "Reasoning, fallacies, forensics & problem-solving",
+  "scale": 127,
+  "bytes": 635723,
+  "approxMB": 0.6
+}

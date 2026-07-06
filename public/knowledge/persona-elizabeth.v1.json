@@ -1,0 +1,13 @@
+{
+  "id": "builtin:kb-elizabeth",
+  "name": "Manners & relationships",
+  "version": 1,
+  "bin": "persona-elizabeth.v1.bin",
+  "dim": 384,
+  "count": 535,
+  "unit": "entries",
+  "description": "Etiquette, conversation, relationships & emotional intelligence",
+  "scale": 127,
+  "bytes": 393721,
+  "approxMB": 0.4
+}
