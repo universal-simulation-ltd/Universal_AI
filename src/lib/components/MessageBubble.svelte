@@ -132,6 +132,13 @@
 
   let confOpen = $state(false) // confidence detail expanded
 
+  // For an on-device source (no URL of its own), a Wikipedia lookup for its
+  // title — Special:Search lands on the article when one matches, else on
+  // Wikipedia's search results.
+  function wikiLookupUrl(source: string): string {
+    return 'https://en.wikipedia.org/wiki/Special:Search?search=' + encodeURIComponent(source)
+  }
+
   function askOpen(url: string) {
     pendingUrl = url
   }
@@ -219,23 +226,22 @@
       {#if sourcesOpen && refSources.length}
         <ol class="sources">
           {#each refSources as src}
+            {@const linkUrl = src.url ?? wikiLookupUrl(src.source)}
             <li class:active={active === src.n}>
               <div class="src-head"><span class="num">[{src.n}]</span> {src.source}</div>
               {#if src.snippet}<p class="snippet">{src.snippet}{src.snippet.length >= 320 ? '…' : ''}</p>{/if}
-              {#if src.url}
-                {#if pendingUrl === src.url}
-                  <div class="confirm">
-                    <span>Open this link in your web browser?</span>
-                    <div class="confirm-actions">
-                      <button class="primary tiny" onclick={confirmOpen}>Open</button>
-                      <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
-                    </div>
+              {#if pendingUrl === linkUrl}
+                <div class="confirm">
+                  <span>Open {src.url ? 'this link' : 'Wikipedia'} in your web browser?</span>
+                  <div class="confirm-actions">
+                    <button class="primary tiny" onclick={confirmOpen}>Open</button>
+                    <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
                   </div>
-                {:else}
-                  <button class="link" onclick={() => askOpen(src.url!)}>
-                    🔗 {src.url}
-                  </button>
-                {/if}
+                </div>
+              {:else if src.url}
+                <button class="link" onclick={() => askOpen(linkUrl)}>🔗 {src.url}</button>
+              {:else}
+                <button class="link" onclick={() => askOpen(linkUrl)}>🔎 Look up on Wikipedia</button>
               {/if}
             </li>
           {/each}
