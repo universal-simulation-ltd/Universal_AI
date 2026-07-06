@@ -146,16 +146,27 @@
   function wikiLookupUrl(source: string): string {
     return 'https://en.wikipedia.org/wiki/Special:Search?search=' + encodeURIComponent(source)
   }
-  // Short label for a source's outbound link: on-device or Wikipedia links just
-  // read "Wikipedia"; any other web link shows its full URL.
-  function refLinkLabel(src: { url?: string }): string {
-    if (!src.url) return 'Wikipedia'
+  // Whether a source's link points at Wikipedia — an on-device source (which we
+  // link to a Wikipedia lookup) or a web result on wikipedia.org.
+  function isWikiSource(src: { url?: string }): boolean {
+    if (!src.url) return true
     try {
-      if (new URL(src.url).hostname.replace(/^www\./, '').endsWith('wikipedia.org')) return 'Wikipedia'
+      return new URL(src.url).hostname.replace(/^www\./, '').endsWith('wikipedia.org')
     } catch {
-      // not a parseable URL — fall through to showing it raw
+      return false
     }
-    return src.url
+  }
+  // Short label for a source's outbound link: Wikipedia links just read
+  // "Wikipedia"; any other web link shows its full URL.
+  function refLinkLabel(src: { url?: string }): string {
+    return isWikiSource(src) ? 'Wikipedia' : (src.url ?? '')
+  }
+  // Open a reference's link. A Wikipedia link opens straight away when web search
+  // is opted in (that standing consent covers Wikipedia); anything else — or when
+  // web search is off — goes through the usual "open link?" confirmation.
+  function openRef(src: { url?: string }, url: string) {
+    if (isWikiSource(src) && $settings.webSearch) window.open(url, '_blank', 'noopener,noreferrer')
+    else askOpen(url)
   }
 
   function askOpen(url: string) {
@@ -275,7 +286,7 @@
                   </div>
                 </div>
               {:else}
-                <button class="link" onclick={() => askOpen(linkUrl)}>🔗 {refLinkLabel(src)}</button>
+                <button class="link" onclick={() => openRef(src, linkUrl)}>🔗 {refLinkLabel(src)}</button>
               {/if}
             </li>
           {/each}
