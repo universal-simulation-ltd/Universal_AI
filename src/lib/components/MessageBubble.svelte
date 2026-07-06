@@ -146,6 +146,17 @@
   function wikiLookupUrl(source: string): string {
     return 'https://en.wikipedia.org/wiki/Special:Search?search=' + encodeURIComponent(source)
   }
+  // Short label for a source's outbound link: on-device or Wikipedia links just
+  // read "Wikipedia"; any other web link shows its full URL.
+  function refLinkLabel(src: { url?: string }): string {
+    if (!src.url) return 'Wikipedia'
+    try {
+      if (new URL(src.url).hostname.replace(/^www\./, '').endsWith('wikipedia.org')) return 'Wikipedia'
+    } catch {
+      // not a parseable URL — fall through to showing it raw
+    }
+    return src.url
+  }
 
   function askOpen(url: string) {
     pendingUrl = url
@@ -221,9 +232,11 @@
         {#if onlineOpen && msg.query}
           <div class="providers">
             <span class="prov-label">Search this online:</span>
-            {#each WEB_PROVIDERS as p}
-              <button class="chip prov-btn" onclick={() => searchWith(p)}>{p.label}</button>
-            {/each}
+            <div class="prov-list">
+              {#each WEB_PROVIDERS as p}
+                <button class="prov-btn" onclick={() => searchWith(p)}>{p.label} <span class="prov-arrow" aria-hidden="true">↗</span></button>
+              {/each}
+            </div>
           </div>
         {/if}
 
@@ -261,10 +274,8 @@
                     <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
                   </div>
                 </div>
-              {:else if src.url}
-                <button class="link" onclick={() => askOpen(linkUrl)}>🔗 {src.url}</button>
               {:else}
-                <button class="link" onclick={() => askOpen(linkUrl)}>🔎 Look up on Wikipedia</button>
+                <button class="link" onclick={() => askOpen(linkUrl)}>🔗 {refLinkLabel(src)}</button>
               {/if}
             </li>
           {/each}
@@ -435,9 +446,20 @@
     background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
   }
   .chip.web { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
-  .providers { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-  .prov-label { font-size: 0.72rem; color: var(--text-dim); }
-  .prov-btn { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  .providers { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+  .prov-label { font-size: 0.72rem; font-weight: 600; color: var(--text-dim); }
+  .prov-list { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  /* Deliberately different from the outlined chips above: soft-filled, squared. */
+  .prov-btn {
+    font-size: 0.78rem; font-weight: 600;
+    padding: 0.35rem 0.7rem; border-radius: 9px;
+    background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+    display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;
+  }
+  .prov-btn:hover { background: color-mix(in srgb, var(--accent) 24%, var(--surface)); }
+  .prov-arrow { opacity: 0.7; font-size: 0.9em; }
 
   .detail {
     padding: 0.55rem 0.65rem;
