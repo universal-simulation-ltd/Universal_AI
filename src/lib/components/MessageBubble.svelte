@@ -155,15 +155,6 @@
 
     {#if showFooter}
       <div class="meta">
-        {#if msg.confidence}
-          <div
-            class="conf {msg.confidence}"
-            title="How closely the cited sources match your question — a measure of how well-supported the answer is, not a guarantee of factual accuracy."
-          >
-            <span class="conf-label">{CONF_LABEL[msg.confidence]}</span>
-            <span class="conf-track"><span class="conf-fill" style="width:{confFill}%"></span></span>
-          </div>
-        {/if}
         <div class="meta-row">
           {#if hasSources}
             <span
@@ -174,6 +165,15 @@
                 : 'Answered from knowledge stored on your device.'}
             >
               {webVerified ? '🌐 Web-checked' : '📚 On-device'}
+            </span>
+          {/if}
+          {#if msg.confidence}
+            <span
+              class="conf {msg.confidence}"
+              aria-label={CONF_LABEL[msg.confidence]}
+              title="{CONF_LABEL[msg.confidence]} — how closely the cited sources match your question (how well-supported the answer is, not a guarantee of factual accuracy)."
+            >
+              <span class="conf-track"><span class="conf-fill" style="width:{confFill}%"></span></span>
             </span>
           {/if}
           <div class="foot-actions">
@@ -374,9 +374,8 @@
     padding-top: 0.4rem;
     border-top: 1px dashed var(--border);
   }
-  /* Confidence bar */
-  .conf { display: flex; align-items: center; gap: 0.5rem; }
-  .conf-label { font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+  /* Confidence bar (label-less; sits inline next to the provenance badge) */
+  .conf { flex: 1 1 auto; min-width: 48px; display: flex; align-items: center; }
   .conf-track {
     flex: 1 1 auto;
     height: 6px;
@@ -386,11 +385,8 @@
     overflow: hidden;
   }
   .conf-fill { display: block; height: 100%; border-radius: 999px; transition: width 0.35s ease; }
-  .conf.high .conf-label { color: var(--ok); }
   .conf.high .conf-fill { background: var(--ok); }
-  .conf.medium .conf-label { color: #d9a106; }
   .conf.medium .conf-fill { background: #d9a106; }
-  .conf.low .conf-label { color: var(--danger); }
   .conf.low .conf-fill { background: var(--danger); }
   .meta-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
   .prov {
