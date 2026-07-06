@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { saved, saveResponse, unsaveResponse, send, doubleCheckOnline, type UIMessage, type Confidence } from '../stores'
+  import { saved, saveResponse, unsaveResponse, send, type UIMessage, type Confidence } from '../stores'
+  import { settings } from '../settings'
   let { msg }: { msg: UIMessage } = $props()
 
   // --- Long-press menu -----------------------------------------------------
@@ -100,11 +101,16 @@
     medium: 'Medium confidence',
     low: 'Low confidence',
   }
+  const CONF_DESC: Record<Confidence, string> = {
+    high: 'The cited sources closely match your question, so this answer is well grounded in them.',
+    medium: 'The cited sources partly match your question — reasonably grounded, worth a sanity check.',
+    low: 'The cited sources only loosely match your question, so treat this answer with more caution.',
+  }
 
-  // Bar fill: proportional to the raw top source-match score when we have it
-  // (cosine ~0.8 reads as full), else a sensible fill for the band alone. Floored
-  // so even a low bar is visible.
-  let confFill = $derived(
+  // Match strength (0–100) behind the confidence dot: proportional to the raw top
+  // source-match score when we have it (cosine ~0.8 reads as full), else a
+  // sensible value for the band alone.
+  let confPct = $derived(
     msg.confidenceScore != null
       ? Math.max(8, Math.min(100, Math.round((msg.confidenceScore / 0.8) * 100)))
       : msg.confidence === 'high'
@@ -113,16 +119,14 @@
           ? 62
           : 30,
   )
-  // "Web-checked" when at least one cited source is a live web link (opt-in web
-  // search) or an online double-check has attached web sources; otherwise the
-  // answer is grounded purely in on-device knowledge.
-  let webVerified = $derived(citedSources.some((s) => !!s.url) || (msg.webSources?.length ?? 0) > 0)
-  let hasSources = $derived(citedSources.length > 0 || (msg.webSources?.length ?? 0) > 0)
-  // Footer (confidence / provenance / double-check) shows on any finished answer.
+  // True when the cited sources include a live web link (opt-in web search).
+  let webVerified = $derived(citedSources.some((s) => !!s.url))
+  // Footer (confidence dot + chips) shows on any finished answer.
   let showFooter = $derived(msg.role === 'assistant' && !msg.streaming && !!msg.content)
-  // Deep link to a real search engine's results for this question — opened in the
-  // browser (keyless, no server), so the user can see the full ranked results.
+  // The "Web search" chip opens DuckDuckGo's results for this question.
   let webSearchUrl = $derived('https://duckduckgo.com/?q=' + encodeURIComponent(msg.query ?? ''))
+
+  let confOpen = $state(false) // confidence detail expanded
 
   function askOpen(url: string) {
     pendingUrl = url
@@ -130,6 +134,13 @@
   function confirmOpen() {
     if (pendingUrl) window.open(pendingUrl, '_blank', 'noopener,noreferrer')
     pendingUrl = null
+  }
+  // Web search opens DuckDuckGo. When the user has opted into web search in
+  // Customise (which names DuckDuckGo), that standing consent lets us open it
+  // directly; otherwise we ask first, like any other outbound link.
+  function openWebSearch() {
+    if ($settings.webSearch) window.open(webSearchUrl, '_blank', 'noopener,noreferrer')
+    else askOpen(webSearchUrl)
   }
 </script>
 
@@ -158,43 +169,47 @@
 
     {#if showFooter}
       <div class="meta">
-        <div class="meta-row">
-          {#if hasSources}
-            <span
-              class="prov"
-              class:web={webVerified}
-              title={webVerified
-                ? 'At least one source is a live web link you can open and verify.'
-                : 'Answered from knowledge stored on your device.'}
-            >
-              {webVerified ? '🌐 Web-checked' : '📚 On-device'}
-            </span>
-          {/if}
+        <div class="chips">
           {#if msg.confidence}
-            <span
-              class="conf {msg.confidence}"
-              aria-label={CONF_LABEL[msg.confidence]}
-              title="{CONF_LABEL[msg.confidence]} — how closely the cited sources match your question (how well-supported the answer is, not a guarantee of factual accuracy)."
+            <button
+              class="dot-btn {msg.confidence}"
+              class:open={confOpen}
+              aria-label="{CONF_LABEL[msg.confidence]} — tap for details"
+              aria-expanded={confOpen}
+              onclick={() => (confOpen = !confOpen)}
             >
-              <span class="conf-track"><span class="conf-fill" style="width:{confFill}%"></span></span>
-            </span>
+              <span class="dot" aria-hidden="true"></span>
+            </button>
           {/if}
-          <div class="foot-actions">
-            {#if msg.webChecking}
-              <span class="dc-status"><span class="dc-spin" aria-hidden="true"></span> Checking the web…</span>
-            {:else if msg.query && !msg.webSources}
-              <button class="dc-btn" onclick={() => doubleCheckOnline(msg.id)} title="Search the web to corroborate this answer">
-                🌐 Double-check online
-              </button>
-            {/if}
-            {#if citedSources.length}
-              <button class="src-toggle" class:open={sourcesOpen} aria-expanded={sourcesOpen} onclick={() => (sourcesOpen = !sourcesOpen)}>
-                References ({citedSources.length})
-                <span class="chev" class:open={sourcesOpen} aria-hidden="true">▾</span>
-              </button>
-            {/if}
-          </div>
+          {#if citedSources.length}
+            <button class="chip" class:on={sourcesOpen} aria-expanded={sourcesOpen} onclick={() => (sourcesOpen = !sourcesOpen)}>
+              📖 Wiki ({citedSources.length})
+            </button>
+          {/if}
+          {#if msg.query}
+            <button class="chip web" onclick={openWebSearch} title="Search DuckDuckGo for this question">
+              🔎 Web search
+            </button>
+          {/if}
         </div>
+
+        {#if confOpen && msg.confidence}
+          <div class="detail">
+            <div class="detail-head"><span class="dot {msg.confidence}" aria-hidden="true"></span> {CONF_LABEL[msg.confidence]} · {confPct}% match</div>
+            <p>{CONF_DESC[msg.confidence]}</p>
+            <p class="muted-note">{webVerified ? '🌐 Includes live web sources. ' : '📚 Grounded in knowledge on your device. '}It reflects how well the answer is supported by its sources — not a guarantee of factual accuracy.</p>
+          </div>
+        {/if}
+
+        {#if pendingUrl === webSearchUrl}
+          <div class="confirm">
+            <span>Open a DuckDuckGo web search for this question?</span>
+            <div class="confirm-actions">
+              <button class="primary tiny" onclick={confirmOpen}>Open</button>
+              <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
+            </div>
+          </div>
+        {/if}
       </div>
 
       {#if sourcesOpen && citedSources.length}
@@ -221,53 +236,6 @@
             </li>
           {/each}
         </ol>
-      {/if}
-
-      {#if msg.webSources?.length || msg.webCheckNote}
-        <div class="webcheck">
-          {#if msg.webSources?.length}
-            <div class="wc-head">🌐 Web double-check — corroborating sources</div>
-            <ol class="sources">
-              {#each msg.webSources as src}
-                <li>
-                  <div class="src-head">{src.source}</div>
-                  {#if src.snippet}<p class="snippet">{src.snippet}{src.snippet.length >= 320 ? '…' : ''}</p>{/if}
-                  {#if src.url}
-                    {#if pendingUrl === src.url}
-                      <div class="confirm">
-                        <span>Open this link in your web browser?</span>
-                        <div class="confirm-actions">
-                          <button class="primary tiny" onclick={confirmOpen}>Open</button>
-                          <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
-                        </div>
-                      </div>
-                    {:else}
-                      <button class="link" onclick={() => askOpen(src.url!)}>🔗 {src.url}</button>
-                    {/if}
-                  {/if}
-                </li>
-              {/each}
-            </ol>
-          {:else if msg.webCheckNote}
-            <p class="dc-note">{msg.webCheckNote}</p>
-          {/if}
-
-          {#if msg.query}
-            {#if pendingUrl === webSearchUrl}
-              <div class="confirm">
-                <span>Open a DuckDuckGo web search for this question?</span>
-                <div class="confirm-actions">
-                  <button class="primary tiny" onclick={confirmOpen}>Open</button>
-                  <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
-                </div>
-              </div>
-            {:else}
-              <button class="wc-serp" onclick={() => askOpen(webSearchUrl)} title="Open the full ranked web results on DuckDuckGo">
-                🔎 See all web results ↗
-              </button>
-            {/if}
-          {/if}
-        </div>
       {/if}
     {/if}
 
@@ -391,90 +359,59 @@
   .meta {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.5rem;
     margin-top: 0.55rem;
-    padding-top: 0.4rem;
+    padding-top: 0.45rem;
     border-top: 1px dashed var(--border);
   }
-  /* Confidence bar (label-less; sits inline next to the provenance badge) */
-  .conf { flex: 1 1 auto; min-width: 48px; display: flex; align-items: center; }
-  .conf-track {
-    flex: 1 1 auto;
-    height: 6px;
-    border-radius: 999px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    overflow: hidden;
+  .chips { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+
+  /* Confidence: a pulsing dot; tap for details */
+  .dot-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.6rem; height: 1.6rem; padding: 0;
+    background: transparent; border: 0; border-radius: 50%;
+    flex: 0 0 auto;
   }
-  .conf-fill { display: block; height: 100%; border-radius: 999px; transition: width 0.35s ease; }
-  .conf.high .conf-fill { background: var(--ok); }
-  .conf.medium .conf-fill { background: #d9a106; }
-  .conf.low .conf-fill { background: var(--danger); }
-  .meta-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-  .prov {
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--text-dim);
-    padding: 0.1rem 0.45rem;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    white-space: nowrap;
+  .dot-btn:hover { background: var(--surface-2); }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto;
+    animation: conf-pulse 1.8s ease-in-out infinite;
   }
-  .prov.web { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
-  .foot-actions { margin-left: auto; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-  .dc-btn {
-    font-size: 0.72rem;
-    padding: 0.2rem 0.5rem;
-    background: transparent;
+  .dot-btn.open .dot, .detail-head .dot { animation: none; }
+  .dot-btn.high .dot, .dot.high { background: var(--ok); color: var(--ok); }
+  .dot-btn.medium .dot, .dot.medium { background: #d9a106; color: #d9a106; }
+  .dot-btn.low .dot, .dot.low { background: var(--danger); color: var(--danger); }
+  @keyframes conf-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+    70% { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  .chip {
+    font-size: 0.72rem; font-weight: 600;
+    padding: 0.22rem 0.6rem;
+    background: var(--surface-2); color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 999px;
+    white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;
+  }
+  .chip:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  .chip.on {
     color: var(--accent);
-    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-    border-radius: 999px;
-    white-space: nowrap;
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
   }
-  .dc-status {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    font-size: 0.72rem; color: var(--text-dim); white-space: nowrap;
+  .chip.web { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+
+  .detail {
+    padding: 0.55rem 0.65rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.78rem; line-height: 1.5; color: var(--text-dim);
   }
-  .dc-spin {
-    width: 11px; height: 11px; border-radius: 50%;
-    border: 2px solid var(--border); border-top-color: var(--accent);
-    animation: dc-spin 0.7s linear infinite;
-  }
-  @keyframes dc-spin { to { transform: rotate(360deg); } }
-  .dc-note { margin: 0.1rem 0 0; font-size: 0.74rem; color: var(--text-dim); }
-  .src-toggle {
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 0.2rem 0.55rem;
-    background: var(--surface-2);
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    white-space: nowrap;
-  }
-  .src-toggle:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
-  .src-toggle.open { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
-  .webcheck { margin-top: 0.5rem; }
-  .wc-head {
-    font-size: 0.72rem; font-weight: 700; color: var(--accent);
-    margin-bottom: 0.35rem;
-  }
-  .wc-serp {
-    margin-top: 0.45rem;
-    font-size: 0.74rem;
-    font-weight: 600;
-    padding: 0.3rem 0.6rem;
-    background: var(--surface-2);
-    color: var(--accent);
-    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-  .chev { transition: transform 0.15s ease; display: inline-block; }
-  .chev.open { transform: rotate(180deg); }
+  .detail-head { display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--text); }
+  .detail p { margin: 0.3rem 0 0; }
+  .muted-note { opacity: 0.85; font-size: 0.74rem; }
 
   .sources {
     margin: 0.4rem 0 0;

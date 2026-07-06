@@ -59,14 +59,8 @@ export interface UIMessage {
   confidence?: Confidence
   /** Raw top source-match score (0..1) behind `confidence` — drives the bar fill. */
   confidenceScore?: number
-  /** The user question this answer responded to — used by "double-check online". */
+  /** The user question this answer responded to — used by the "Web search" chip. */
   query?: string
-  /** True while an on-demand web double-check is running for this answer. */
-  webChecking?: boolean
-  /** Corroborating web results from a double-check (each carries a real URL). */
-  webSources?: Citation[]
-  /** Set when a double-check ran but found nothing, or couldn't run. */
-  webCheckNote?: string
   streaming?: boolean
 }
 
@@ -643,48 +637,6 @@ export async function send(userText: string): Promise<void> {
 
 export async function stop(): Promise<void> {
   await engine?.interrupt()
-}
-
-function patchMessage(id: string, patch: Partial<UIMessage>): void {
-  messages.update((all) => all.map((m) => (m.id === id ? { ...m, ...patch } : m)))
-}
-
-/**
- * On-demand "double-check online": re-run the answer's question through the web
- * search pipeline (Wikipedia) and attach any corroborating web results to the
- * message, so the user can verify a local answer against a live source. Opt-in
- * per answer (clicking is the consent), independent of the always-on web-search
- * toggle. Best-effort and never throws.
- */
-export async function doubleCheckOnline(id: string): Promise<void> {
-  const msg = get(messages).find((m) => m.id === id)
-  if (!msg || msg.role !== 'assistant' || msg.webChecking) return
-  const query = (msg.query ?? '').trim()
-  if (!query) return
-  if (!get(online)) {
-    patchMessage(id, { webCheckNote: 'You appear to be offline — connect to double-check on the web.' })
-    return
-  }
-  patchMessage(id, { webChecking: true, webCheckNote: undefined, webSources: undefined })
-  try {
-    const hits = (await webSearch(query, 4))
-      .filter((h) => h.score > 0.25)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-    if (hits.length === 0) {
-      patchMessage(id, { webChecking: false, webCheckNote: 'No corroborating web results found.' })
-      return
-    }
-    const webSources: Citation[] = hits.map((h, i) => ({
-      n: i + 1,
-      source: h.source,
-      snippet: h.text.slice(0, 320),
-      url: h.url,
-    }))
-    patchMessage(id, { webChecking: false, webSources, webCheckNote: undefined })
-  } catch {
-    patchMessage(id, { webChecking: false, webCheckNote: 'Web check failed — please try again.' })
-  }
 }
 
 export function clearChat(): void {

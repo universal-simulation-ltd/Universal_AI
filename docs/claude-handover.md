@@ -2,44 +2,33 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
-## Update — 2026-07-06 (Confidence bar + source provenance on answers)
+## Update — 2026-07-06 (Answer footer: confidence dot + Wiki / Web-search chips)
 
-Made the existing answer-confidence signal visual, in `MessageBubble.svelte`.
+Reworked the answer footer in `MessageBubble.svelte` into a compact dot + chips
+row (replaced an earlier bar + provenance-badge + "Double-check online" +
+"References" iteration; that intermediate design is gone).
 
-- **Confidence bar** — the old text-only "High/Medium/Low confidence" pill is now
-  a label + horizontal **fill bar**, coloured by band (green/amber/red). Fill is
-  proportional to the raw top source-match score: `stores.ts` `send()` now also
-  stashes `confidenceScore` (0..1, the top retrieval cosine) on the `UIMessage`
-  alongside the band; the bar fills to `min(100, score/0.8*100)` (floored at 8%),
-  falling back to per-band fills for older messages without a score.
-- **Provenance badge** — each grounded answer shows **🌐 Web-checked** when any
-  cited source carries a live URL (opt-in web search), else **📚 On-device**.
-- Honest labelling: the tooltip says confidence reflects *how well-supported by
-  sources* the answer is, **not** guaranteed factual accuracy (it's the retrieval
-  cosine, not model certainty).
-- The confidence bar only appears on answers that cite sources; the double-check
-  button (below) appears on any finished answer.
-- The sources disclosure is now a clickable **pill labelled "References (N)"**
-  (was a flat "Sources (N)" text button); it turns accent when expanded.
-
-### On-demand "Double-check online"
-- Every finished answer shows a **🌐 Double-check online** button. It re-runs the
-  answer's question through the existing web-search pipeline (`webSearch`,
-  Wikipedia) and attaches the corroborating web results under the answer in a
-  "Web double-check" section (with openable links), flipping the provenance badge
-  to 🌐 Web-checked. `stores.ts` `doubleCheckOnline(id)` + `UIMessage.query`
-  (stashed on send) / `webChecking` / `webSources` / `webCheckNote`.
-- Opt-in per answer (the click is the consent) — independent of the always-on
-  web-search toggle. Best-effort: offline → a note; no hits → a note.
-- The double-check panel also has a **🔎 See all web results ↗** link that opens
-  a real search engine's ranked results — `https://duckduckgo.com/?q=<query>` — in
-  the browser (via the open-link confirm flow). Keyless/private; shows even when
-  the inline corroboration found nothing, so the user can always go look. (We
-  can't fetch a general engine's #1 result *inline* without a key + proxy, so we
-  link out to the engine instead.)
-- **Provider = Wikipedia**, not DuckDuckGo (DDG has no clean CORS JSON API). The
-  pipeline is provider-agnostic (`fetchRawResults` in `rag/websearch.ts`) if a
-  keyed web API is wanted later.
+- **Confidence = a pulsing dot**, coloured by band (green/amber/red). Tapping it
+  expands a **detail panel**: `"<band> · <N>% match"` + a plain explanation +
+  whether it's on-device or includes web sources + the honesty caveat (reflects
+  *source support*, not guaranteed accuracy). Match % from `confidenceScore`
+  (0..1 top retrieval cosine stashed on `UIMessage` in `send()`); `min(100,
+  score/0.8*100)`, floored 8%.
+- **"📖 Wiki (N)" chip** — shows/hides the answer's cited reference sources
+  (the numbered `[n]` cards). Replaces the old "References (N)" pill. (Named
+  "Wiki" per the user; note that a character-pack answer's sources are the pack,
+  e.g. "Luigi the Chef", not literally Wikipedia — flag if the label should be
+  "Sources".)
+- **"🔎 Web search" chip** — opens **DuckDuckGo** results for the question
+  (`https://duckduckgo.com/?q=<query>`, via `UIMessage.query`). Governed by the
+  **Online web search** opt-in in Customise (copy updated to name DuckDuckGo):
+  when the opt-in is **on**, the chip opens DDG straight away; when **off**, it
+  goes through the standard "open link?" confirm. `openWebSearch()` reads
+  `$settings.webSearch`.
+- **Removed** the inline Wikipedia "double-check" fetch (the `doubleCheckOnline`
+  store fn + `webChecking`/`webSources`/`webCheckNote` fields) — superseded by
+  the DDG "Web search" chip. `webSearch`/`rag/websearch.ts` (Wikipedia) is still
+  used for the always-on in-chat web citations when the opt-in is enabled.
 
 ## Update — 2026-07-06 (Characters moved to Knowledge tab + per-character downloadable RAG packs)
 
