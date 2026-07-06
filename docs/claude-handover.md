@@ -31,6 +31,12 @@ Made the existing answer-confidence signal visual, in `MessageBubble.svelte`.
   (stashed on send) / `webChecking` / `webSources` / `webCheckNote`.
 - Opt-in per answer (the click is the consent) — independent of the always-on
   web-search toggle. Best-effort: offline → a note; no hits → a note.
+- The double-check panel also has a **🔎 See all web results ↗** link that opens
+  a real search engine's ranked results — `https://duckduckgo.com/?q=<query>` — in
+  the browser (via the open-link confirm flow). Keyless/private; shows even when
+  the inline corroboration found nothing, so the user can always go look. (We
+  can't fetch a general engine's #1 result *inline* without a key + proxy, so we
+  link out to the engine instead.)
 - **Provider = Wikipedia**, not DuckDuckGo (DDG has no clean CORS JSON API). The
   pipeline is provider-agnostic (`fetchRawResults` in `rag/websearch.ts`) if a
   keyed web API is wanted later.

@@ -120,6 +120,9 @@
   let hasSources = $derived(citedSources.length > 0 || (msg.webSources?.length ?? 0) > 0)
   // Footer (confidence / provenance / double-check) shows on any finished answer.
   let showFooter = $derived(msg.role === 'assistant' && !msg.streaming && !!msg.content)
+  // Deep link to a real search engine's results for this question — opened in the
+  // browser (keyless, no server), so the user can see the full ranked results.
+  let webSearchUrl = $derived('https://duckduckgo.com/?q=' + encodeURIComponent(msg.query ?? ''))
 
   function askOpen(url: string) {
     pendingUrl = url
@@ -192,7 +195,6 @@
             {/if}
           </div>
         </div>
-        {#if msg.webCheckNote}<p class="dc-note">{msg.webCheckNote}</p>{/if}
       </div>
 
       {#if sourcesOpen && citedSources.length}
@@ -221,30 +223,50 @@
         </ol>
       {/if}
 
-      {#if msg.webSources?.length}
+      {#if msg.webSources?.length || msg.webCheckNote}
         <div class="webcheck">
-          <div class="wc-head">🌐 Web double-check — corroborating sources</div>
-          <ol class="sources">
-            {#each msg.webSources as src}
-              <li>
-                <div class="src-head">{src.source}</div>
-                {#if src.snippet}<p class="snippet">{src.snippet}{src.snippet.length >= 320 ? '…' : ''}</p>{/if}
-                {#if src.url}
-                  {#if pendingUrl === src.url}
-                    <div class="confirm">
-                      <span>Open this link in your web browser?</span>
-                      <div class="confirm-actions">
-                        <button class="primary tiny" onclick={confirmOpen}>Open</button>
-                        <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
+          {#if msg.webSources?.length}
+            <div class="wc-head">🌐 Web double-check — corroborating sources</div>
+            <ol class="sources">
+              {#each msg.webSources as src}
+                <li>
+                  <div class="src-head">{src.source}</div>
+                  {#if src.snippet}<p class="snippet">{src.snippet}{src.snippet.length >= 320 ? '…' : ''}</p>{/if}
+                  {#if src.url}
+                    {#if pendingUrl === src.url}
+                      <div class="confirm">
+                        <span>Open this link in your web browser?</span>
+                        <div class="confirm-actions">
+                          <button class="primary tiny" onclick={confirmOpen}>Open</button>
+                          <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
+                        </div>
                       </div>
-                    </div>
-                  {:else}
-                    <button class="link" onclick={() => askOpen(src.url!)}>🔗 {src.url}</button>
+                    {:else}
+                      <button class="link" onclick={() => askOpen(src.url!)}>🔗 {src.url}</button>
+                    {/if}
                   {/if}
-                {/if}
-              </li>
-            {/each}
-          </ol>
+                </li>
+              {/each}
+            </ol>
+          {:else if msg.webCheckNote}
+            <p class="dc-note">{msg.webCheckNote}</p>
+          {/if}
+
+          {#if msg.query}
+            {#if pendingUrl === webSearchUrl}
+              <div class="confirm">
+                <span>Open a DuckDuckGo web search for this question?</span>
+                <div class="confirm-actions">
+                  <button class="primary tiny" onclick={confirmOpen}>Open</button>
+                  <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
+                </div>
+              </div>
+            {:else}
+              <button class="wc-serp" onclick={() => askOpen(webSearchUrl)} title="Open the full ranked web results on DuckDuckGo">
+                🔎 See all web results ↗
+              </button>
+            {/if}
+          {/if}
         </div>
       {/if}
     {/if}
@@ -439,6 +461,17 @@
   .wc-head {
     font-size: 0.72rem; font-weight: 700; color: var(--accent);
     margin-bottom: 0.35rem;
+  }
+  .wc-serp {
+    margin-top: 0.45rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    background: var(--surface-2);
+    color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+    border-radius: 999px;
+    white-space: nowrap;
   }
   .chev { transition: transform 0.15s ease; display: inline-block; }
   .chev.open { transform: rotate(180deg); }
