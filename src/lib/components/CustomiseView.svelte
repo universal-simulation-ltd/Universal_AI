@@ -156,9 +156,9 @@
   <section>
     <h3>Online web search <span class="tag">opt-in</span></h3>
     <p class="hint">
-      Off keeps the app fully offline and private. When on, the <b>Web search</b>
-      button on answers opens <b>DuckDuckGo</b> results for your question — and,
-      with this enabled, it opens straight away without the extra “open link?”
+      Off keeps the app fully offline and private. When on, the <b>Online</b>
+      button on answers can search the web — <b>Wikipedia</b> or <b>DuckDuckGo</b>
+      (more to come) — and opens straight away without the extra “open link?”
       confirmation. When connected, chats can also cite real web links alongside
       your documents.
     </p>

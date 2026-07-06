@@ -127,10 +127,18 @@
   let webVerified = $derived(refSources.some((s) => !!s.url))
   // Footer (confidence dot + chips) shows on any finished answer.
   let showFooter = $derived(msg.role === 'assistant' && !msg.streaming && !!msg.content)
-  // The "Web search" chip opens DuckDuckGo's results for this question.
-  let webSearchUrl = $derived('https://duckduckgo.com/?q=' + encodeURIComponent(msg.query ?? ''))
 
   let confOpen = $state(false) // confidence detail expanded
+  let onlineOpen = $state(false) // the "Online" provider picker expanded
+  // A web-search URL awaiting the "open in your browser?" confirmation, or null.
+  let pendingWebUrl = $state<string | null>(null)
+
+  // The search providers the "Online" chip offers. Add more here in future
+  // (each just needs a label and a query→URL builder).
+  const WEB_PROVIDERS: { id: string; label: string; url: (q: string) => string }[] = [
+    { id: 'wikipedia', label: 'Wikipedia', url: (q) => 'https://en.wikipedia.org/wiki/Special:Search?search=' + encodeURIComponent(q) },
+    { id: 'duckduckgo', label: 'DuckDuckGo', url: (q) => 'https://duckduckgo.com/?q=' + encodeURIComponent(q) },
+  ]
 
   // For an on-device source (no URL of its own), a Wikipedia lookup for its
   // title — Special:Search lands on the article when one matches, else on
@@ -146,12 +154,18 @@
     if (pendingUrl) window.open(pendingUrl, '_blank', 'noopener,noreferrer')
     pendingUrl = null
   }
-  // Web search opens DuckDuckGo. When the user has opted into web search in
-  // Customise (which names DuckDuckGo), that standing consent lets us open it
-  // directly; otherwise we ask first, like any other outbound link.
-  function openWebSearch() {
-    if ($settings.webSearch) window.open(webSearchUrl, '_blank', 'noopener,noreferrer')
-    else askOpen(webSearchUrl)
+  // Pick a provider from the Online popup. When the user has opted into web
+  // search in Customise, that standing consent opens it directly; otherwise we
+  // ask first, like any other outbound link.
+  function searchWith(provider: (typeof WEB_PROVIDERS)[number]) {
+    onlineOpen = false
+    const url = provider.url(msg.query ?? '')
+    if ($settings.webSearch) window.open(url, '_blank', 'noopener,noreferrer')
+    else pendingWebUrl = url
+  }
+  function confirmWeb() {
+    if (pendingWebUrl) window.open(pendingWebUrl, '_blank', 'noopener,noreferrer')
+    pendingWebUrl = null
   }
 </script>
 
@@ -194,15 +208,24 @@
           {/if}
           {#if refSources.length}
             <button class="chip" class:on={sourcesOpen} aria-expanded={sourcesOpen} onclick={() => (sourcesOpen = !sourcesOpen)}>
-              📖 Wiki ({refSources.length})
+              📖 References ({refSources.length})
             </button>
           {/if}
           {#if msg.query}
-            <button class="chip web" onclick={openWebSearch} title="Search DuckDuckGo for this question">
-              🔎 Web search
+            <button class="chip web" class:on={onlineOpen} aria-expanded={onlineOpen} onclick={() => (onlineOpen = !onlineOpen)} title="Look this up online">
+              🌐 Online
             </button>
           {/if}
         </div>
+
+        {#if onlineOpen && msg.query}
+          <div class="providers">
+            <span class="prov-label">Search this online:</span>
+            {#each WEB_PROVIDERS as p}
+              <button class="chip prov-btn" onclick={() => searchWith(p)}>{p.label}</button>
+            {/each}
+          </div>
+        {/if}
 
         {#if confOpen && msg.confidence}
           <div class="detail">
@@ -212,12 +235,12 @@
           </div>
         {/if}
 
-        {#if pendingUrl === webSearchUrl}
+        {#if pendingWebUrl}
           <div class="confirm">
-            <span>Open a DuckDuckGo web search for this question?</span>
+            <span>Open this web search in your browser?</span>
             <div class="confirm-actions">
-              <button class="primary tiny" onclick={confirmOpen}>Open</button>
-              <button class="tiny" onclick={() => (pendingUrl = null)}>Cancel</button>
+              <button class="primary tiny" onclick={confirmWeb}>Open</button>
+              <button class="tiny" onclick={() => (pendingWebUrl = null)}>Cancel</button>
             </div>
           </div>
         {/if}
@@ -412,6 +435,9 @@
     background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
   }
   .chip.web { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+  .providers { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .prov-label { font-size: 0.72rem; color: var(--text-dim); }
+  .prov-btn { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 
   .detail {
     padding: 0.55rem 0.65rem;

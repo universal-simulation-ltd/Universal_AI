@@ -14,21 +14,23 @@ row (replaced an earlier bar + provenance-badge + "Double-check online" +
   *source support*, not guaranteed accuracy). Match % from `confidenceScore`
   (0..1 top retrieval cosine stashed on `UIMessage` in `send()`); `min(100,
   score/0.8*100)`, floored 8%.
-- **"📖 Wiki (N)" chip** — shows/hides the answer's cited reference sources
-  (the numbered `[n]` cards). Replaces the old "References (N)" pill. (Named
-  "Wiki" per the user; note that a character-pack answer's sources are the pack,
-  e.g. "Luigi the Chef", not literally Wikipedia — flag if the label should be
-  "Sources".)
-- **"🔎 Web search" chip** — opens **DuckDuckGo** results for the question
-  (`https://duckduckgo.com/?q=<query>`, via `UIMessage.query`). Governed by the
-  **Online web search** opt-in in Customise (copy updated to name DuckDuckGo):
-  when the opt-in is **on**, the chip opens DDG straight away; when **off**, it
-  goes through the standard "open link?" confirm. `openWebSearch()` reads
-  `$settings.webSearch`.
-- **Removed** the inline Wikipedia "double-check" fetch (the `doubleCheckOnline`
-  store fn + `webChecking`/`webSources`/`webCheckNote` fields) — superseded by
-  the DDG "Web search" chip. `webSearch`/`rag/websearch.ts` (Wikipedia) is still
-  used for the always-on in-chat web citations when the opt-in is enabled.
+- **"📖 References (N)" chip** — shows/hides the answer's source cards. Driven by
+  the **retrieved** sources (`refSources = msg.sources`), NOT only the inline
+  `[n]`-cited ones — small on-device models often answer from the context without
+  emitting `[n]` markers, so gating on citations hid the chip entirely. Each
+  source card links out: web-search sources → their real URL; on-device pack
+  sources → **"🔎 Look up on Wikipedia"** (`Special:Search?search=<title>`, lands
+  on the article if the title matches, else WP search). (Was briefly "Wiki (N)".)
+- **"🌐 Online" chip** — opens an inline **provider picker** ("Search this
+  online:") from `WEB_PROVIDERS` — currently **Wikipedia** + **DuckDuckGo**, easy
+  to extend (each is `{id,label,url:(q)=>…}`). Picking one opens that provider's
+  search for `UIMessage.query`. Governed by the **Online web search** opt-in in
+  Customise (copy names Wikipedia + DuckDuckGo): opt-in **on** → opens straight
+  away; **off** → standard "open link?" confirm (`pendingWebUrl`/`confirmWeb`).
+- **Removed** the earlier inline "double-check" fetch (`doubleCheckOnline` +
+  `webChecking`/`webSources`/`webCheckNote`). `webSearch`/`rag/websearch.ts`
+  (Wikipedia) is still used for the always-on in-chat web citations when the
+  opt-in is enabled.
 
 ## Update — 2026-07-06 (Characters moved to Knowledge tab + per-character downloadable RAG packs)
 
