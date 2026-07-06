@@ -89,12 +89,16 @@
   let pendingUrl = $state<string | null>(null)
 
   let segs = $derived(parse(msg.content, msg.sources?.length ?? 0))
-  // Footnotes list only the sources actually cited inline — a retrieved-but-
-  // unused chunk (just over the relevance threshold) shouldn't show as a source.
+  // Which sources the model actually referenced inline — used to highlight the
+  // matching entry when a [n] marker is tapped.
   let citedNums = $derived(
     new Set(segs.filter((s) => s.t === 'cite').map((s) => (s as { n: number }).n)),
   )
-  let citedSources = $derived((msg.sources ?? []).filter((s) => citedNums.has(s.n)))
+  // The Wiki chip / reference list is driven by the sources RETRIEVED for this
+  // answer, not only the ones the model happened to tag with [n] — small
+  // on-device models often answer from the context without emitting the markers,
+  // and the sources are still what grounded the answer.
+  let refSources = $derived(msg.sources ?? [])
 
   const CONF_LABEL: Record<Confidence, string> = {
     high: 'High confidence',
@@ -120,7 +124,7 @@
           : 30,
   )
   // True when the cited sources include a live web link (opt-in web search).
-  let webVerified = $derived(citedSources.some((s) => !!s.url))
+  let webVerified = $derived(refSources.some((s) => !!s.url))
   // Footer (confidence dot + chips) shows on any finished answer.
   let showFooter = $derived(msg.role === 'assistant' && !msg.streaming && !!msg.content)
   // The "Web search" chip opens DuckDuckGo's results for this question.
@@ -181,9 +185,9 @@
               <span class="dot" aria-hidden="true"></span>
             </button>
           {/if}
-          {#if citedSources.length}
+          {#if refSources.length}
             <button class="chip" class:on={sourcesOpen} aria-expanded={sourcesOpen} onclick={() => (sourcesOpen = !sourcesOpen)}>
-              📖 Wiki ({citedSources.length})
+              📖 Wiki ({refSources.length})
             </button>
           {/if}
           {#if msg.query}
@@ -212,9 +216,9 @@
         {/if}
       </div>
 
-      {#if sourcesOpen && citedSources.length}
+      {#if sourcesOpen && refSources.length}
         <ol class="sources">
-          {#each citedSources as src}
+          {#each refSources as src}
             <li class:active={active === src.n}>
               <div class="src-head"><span class="num">[{src.n}]</span> {src.source}</div>
               {#if src.snippet}<p class="snippet">{src.snippet}{src.snippet.length >= 320 ? '…' : ''}</p>{/if}
