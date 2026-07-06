@@ -40,6 +40,20 @@
 </script>
 
 <div class="customise">
+  <!-- Privacy: Private mode — always on, shown locked for user confidence -->
+  <section>
+    <h3>Privacy</h3>
+    <div class="locked-row">
+      <label class="toggle locked">
+        <input type="checkbox" checked disabled aria-disabled="true" />
+        <span class="switch" aria-hidden="true"></span>
+        <span class="toggle-label">Private mode</span>
+      </label>
+      <span class="locked-badge">Always on</span>
+    </div>
+    <p class="hint">Chats and documents run entirely on your device and are never sent to a server. The only network use is what you opt into — web search or Universal ID backup.</p>
+  </section>
+
   <!-- Appearance -->
   <section>
     <h3>Appearance</h3>
@@ -164,34 +178,24 @@
     </label>
   </section>
 
-  <!-- Privacy & Safety -->
+  <!-- Safety -->
   <section>
-    <h3>Privacy &amp; Safety</h3>
+    <h3>Safety</h3>
 
-    <!-- Private mode — always on, shown locked for user confidence -->
-    <div class="locked-row">
-      <label class="toggle locked">
-        <input type="checkbox" checked disabled aria-disabled="true" />
-        <span class="switch" aria-hidden="true"></span>
-        <span class="toggle-label">Private mode</span>
-      </label>
-      <span class="locked-badge">Always on</span>
-    </div>
-    <p class="hint">Chats and documents run entirely on your device and are never sent to a server. The only network use is what you opt into — web search or Universal ID backup.</p>
-
-    <!-- Safe mode -->
-    <label class="toggle" style="margin-top:0.6rem">
+    <!-- 21+ — the inverse of Safe mode: turning it ON allows mature content -->
+    <label class="toggle">
       <input
         type="checkbox"
-        checked={$settings.safeMode !== false}
-        onchange={(e) => setSafeMode((e.currentTarget as HTMLInputElement).checked)}
+        checked={$settings.safeMode === false}
+        onchange={(e) => setSafeMode(!(e.currentTarget as HTMLInputElement).checked)}
       />
       <span class="switch" aria-hidden="true"></span>
-      <span class="toggle-label">Safe mode {$settings.safeMode !== false ? 'on' : 'off'}</span>
+      <span class="toggle-label">21+</span>
     </label>
     <p class="hint">
-      When on, the assistant refuses topics like adult content, gambling, and harmful material.
-      Recommended for shared or family devices.
+      Off keeps Safe mode on — the assistant refuses adult content, gambling, and
+      other harmful material (recommended for shared or family devices). Turn 21+
+      on to allow those mature topics.
     </p>
 
     <!-- Clear on close -->
