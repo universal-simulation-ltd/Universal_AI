@@ -63,6 +63,11 @@ npm run preview  # serve the built app
 
 > Note: the PWA service worker is only generated in `build`/`preview`, not `dev`.
 
+> Build marker: each build bakes the commit SHA into a `<meta name="build-sha">`
+> tag and logs `build: <sha>` to the console at startup, so you can tell which
+> build is live in-browser. On Cloudflare Pages the SHA comes from
+> `CF_PAGES_COMMIT_SHA`; locally it falls back to the git short SHA (or `dev`).
+
 ### Rebuilding the knowledge pack
 
 The pre-built pack ships in the repo, so you don't need to regenerate it. To

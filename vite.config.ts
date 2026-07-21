@@ -1,12 +1,38 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// Build-version marker: prefer the Cloudflare Pages commit SHA baked in at build
+// time, fall back to the local git short SHA in dev, then to 'dev' if git is
+// unavailable. Surfaced as a <meta name="build-sha"> tag and a startup console.log
+// so the live build is identifiable in-browser without wrangler.
+function resolveBuildSha(): string {
+  if (process.env.CF_PAGES_COMMIT_SHA) return process.env.CF_PAGES_COMMIT_SHA
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return 'dev'
+  }
+}
+const BUILD_SHA = resolveBuildSha()
 
 // Note: we deliberately do NOT enable cross-origin isolation (COOP/COEP).
 // Our heavy lifting runs on WebGPU (WebLLM) which does not need SharedArrayBuffer,
 // and avoiding COEP keeps cross-origin model downloads from the HF CDN working.
 export default defineConfig({
+  define: {
+    'import.meta.env.VITE_BUILD_SHA': JSON.stringify(BUILD_SHA),
+  },
   plugins: [
+    {
+      name: 'build-sha-meta',
+      transformIndexHtml() {
+        return [
+          { tag: 'meta', attrs: { name: 'build-sha', content: BUILD_SHA }, injectTo: 'head' as const },
+        ]
+      },
+    },
     svelte(),
     VitePWA({
       registerType: 'autoUpdate',
