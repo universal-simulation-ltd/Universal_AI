@@ -2,6 +2,7 @@
   "name": "universal-ai",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "description": "Offline-first LLM chatbot PWA with pluggable RAG knowledge bases",
   "scripts": {
