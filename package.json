@@ -16,7 +16,7 @@
     "@huggingface/transformers": "^3.3.3",
     "@mlc-ai/web-llm": "^0.2.79",
     "@supabase/supabase-js": "^2.110.0",
-    "@unisim/sdk": "^0.98.0",
+    "@unisim/sdk": "^0.99.0",
     "@wllama/wllama": "^2.4.0"
   },
   "devDependencies": {
