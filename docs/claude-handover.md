@@ -2,6 +2,43 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-08-30 (iOS field zoom + WelcomeGate safe areas)
+
+Two small mobile fixes, both shared with Universal QR and Universal Compress.
+
+### 1. Tapping a field no longer leaves the page zoomed in
+iOS Safari/WKWebView magnify the page whenever a focused control computes to
+under 16px, and never zoom back out. `src/app.css` now floors `input`/`textarea`
+/`select` at `max(16px, 1em)` inside `@media (pointer: coarse)` — touch only, so
+the desktop type scale is untouched. Every field in this app already measured
+16px (they all use `font: inherit` off a 16px `:root`), so this is a guard
+rather than a repair here; the same block is in the other two apps, where it
+did fix real 12–14px fields.
+
+- **`index.html` lost `maximum-scale=1.0, user-scalable=no`.** It had been there
+  since the initial commit with no stated reason. It does suppress the
+  focus-zoom, but by taking pinch-zoom away from everyone — and with the 16px
+  floor in place there is nothing left for it to suppress. The viewport meta now
+  matches Universal QR and Universal Compress:
+  `width=device-width, initial-scale=1.0, viewport-fit=cover`.
+  ⚠️ If the zoom lock was deliberate, this is the line to put back.
+
+### 2. WelcomeGate cleared the notch and the home indicator
+`.scrim` had a flat `padding: 1rem`, so with `viewport-fit=cover` in the
+full-screen Capacitor WKWebView the card's top landed at ~34px — under a ~47px
+Dynamic Island inset. It now pads with `max(1rem, var(--safe-top/bottom))`, and
+`.card` swapped `max-height: 92dvh` for `max-height: 100%` (of the now-inset
+scrim) plus `overscroll-behavior: contain`. The card's own `--safe-bottom`
+padding went with it — having it in both places left a band of dead space at the
+end of its scroll.
+
+Measured at 390×844 with touch emulation, with the insets simulated: card top
+47 → bottom 810, content still scrolling inside the card (927 > 761).
+
+**Not changed:** this app mounts no `UniversalAppsNavBar` (it is React-only), so
+none of the z-index work the other two apps needed applies here. The gate is
+also the app's only full-screen overlay.
+
 ## Update — 2026-07-06 (Answer footer: confidence dot + Wiki / Web-search chips)
 
 Reworked the answer footer in `MessageBubble.svelte` into a compact dot + chips

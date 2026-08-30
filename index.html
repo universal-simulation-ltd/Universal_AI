@@ -4,7 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icon-180.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <!-- No `maximum-scale` / `user-scalable=no`. Locking the zoom does stop iOS
+         magnifying the page when a field is focused, but it takes pinch-zoom
+         away from everyone to do it. app.css floors form controls at 16px on
+         coarse pointers instead, which removes the reason iOS zooms in the
+         first place and leaves pinch-zoom alone. Universal QR and Universal
+         Compress carry the same pair. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0d12" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

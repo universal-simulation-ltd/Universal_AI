@@ -110,6 +110,11 @@
 </div>
 
 <style>
+  /* ⚠️ The padding carries the safe-area insets. The Capacitor build runs in a
+     full-screen WKWebView and index.html asks for `viewport-fit=cover`, so a
+     flat 1rem put the top of the card under the Dynamic Island (the inset is
+     ~47px there, the card's own top offset was ~34px) and its bottom under the
+     home indicator. 0 in a browser, so this is a no-op on web and desktop. */
   .scrim {
     position: fixed;
     inset: 0;
@@ -117,7 +122,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: max(1rem, var(--safe-top)) 1rem max(1rem, var(--safe-bottom));
     background: color-mix(in srgb, var(--frame) 82%, transparent);
     backdrop-filter: blur(4px);
   }
@@ -127,11 +132,18 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 1.4rem 1.3rem calc(var(--safe-bottom) + 1.3rem);
+    /* No --safe-bottom here any more: the scrim's padding now holds the card
+       clear of the home indicator, and adding it twice left a band of dead
+       space at the end of the card's scroll. */
+    padding: 1.4rem 1.3rem 1.3rem;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
     text-align: center;
-    max-height: 92dvh;
+    /* 100% of the padded scrim rather than 92dvh: it already has the safe-area
+       insets subtracted, so the card can use every pixel that is actually
+       visible without running under the status bar. */
+    max-height: 100%;
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .hero { font-size: 2.6rem; line-height: 1; margin-bottom: 0.4rem; }
   h1 { font-size: 1.25rem; margin: 0 0 0.6rem; color: var(--text); }
