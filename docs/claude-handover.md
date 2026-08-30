@@ -2,6 +2,65 @@
 
 Newest entries first. Each dated entry overrides the older body below it.
 
+## Update — 2026-08-30 (the iOS bundle no longer ships a service worker; the SDK dep is gone)
+
+Two backlog items, both "it works by accident, and only by accident".
+
+### 1. The native build stripped its service worker
+`ios/App/App/public` had been shipping `sw.js`, `registerSW.js`,
+`workbox-835c8c05.js` and `manifest.webmanifest` since the iOS project existed —
+a Workbox worker precaching URLs for `https://opensource.unisim.co.uk`, copied
+inside a `capacitor://localhost` app. It never broke, and the reason is not a
+design decision: WKWebView does not support service workers on a custom scheme,
+and `registerSW.js` guards on `'serviceWorker' in navigator`. Every other
+Capacitor app in the suite strips it; this one was the exception.
+
+- **`vite.config.ts`** now takes `({ mode })` and drops `VitePWA` when
+  `mode === 'mobile'` (`'desktop'` accepted as an alias — that is the mode name
+  the sibling apps use for the same build).
+- **`package.json`** gains the suite's four scripts: `build:mobile`
+  (`vite build --mode mobile`), `check:mobile-bundle`, `cap:sync`,
+  `cap:open:ios`. **Use `npm run cap:sync`, not `npx cap sync`** — the plain
+  command copies whatever is in `dist`, which after `npm run build` is the web
+  build, worker and all.
+- **`scripts/verify-mobile-bundle.mjs`** is the suite's guard, adapted. It
+  failed loudly on the old bundle (three service-worker files) and passes on the
+  new one.
+
+  ⚠️ **One deliberate divergence from the sibling copies.** They test for asset
+  URLs starting with `/`, because they are served under a path prefix
+  (`/blackbook/`, `/polling/`) where a leading `/` always means the web base.
+  **This app's `base` is `/` on the web too**, and `capacitor://localhost` roots
+  that at the copied directory — so a leading `/` here is correct, and that test
+  would be nothing but false alarms. `base` is therefore NOT changed by
+  `--mode mobile`; the only difference is the worker. The script instead
+  resolves every local asset URL against the bundle and checks the file exists,
+  which is base-agnostic and strictly stronger.
+
+Verified: `npm run build` still emits `sw.js` + `registerSW.js` +
+`workbox-835c8c05.js` and precaches 13 entries, unchanged. `npm run build:mobile`
+emits none of them and no `manifest.webmanifest`, with byte-identical app chunks
+(`index-DYuonQVU.js`, `webllm-H_gTOLzM.js` in both), so the PWA plugin is the
+only difference. `npx cap copy ios` then leaves the bundle clean and the
+verifier green. `npm run check`: 447 files, 0 errors, 0 warnings.
+
+### 2. `@unisim/sdk` is removed
+It was declared at `^0.103.0` and **nothing imported it** — `git grep` across
+the repo finds it only in `package.json` and one prose mention in
+`docs/README.md`. It cannot be used here either: the SDK's components are React,
+and this app is Svelte. It was skipped in the suite's 0.123.2 bump for exactly
+that reason, which is the trap — a stale declared version invites someone to
+"fix" it and then wonder why nothing changes.
+
+Removing it also took **react 19.2.8, react-dom 19.2.8 and scheduler 0.27.0** out
+of `package-lock.json`, where they sat as the SDK's peers. In a Svelte app.
+
+Pruned with `npm uninstall @unisim/sdk --package-lock-only` (no `node_modules`
+churn — the package had never actually been installed here).
+
+⚠️ If this app ever does need suite chrome, it needs a Svelte port of it, not
+this dependency back.
+
 ## Update — 2026-08-30 (iOS field zoom + WelcomeGate safe areas)
 
 Two small mobile fixes, both shared with Universal QR and Universal Compress.

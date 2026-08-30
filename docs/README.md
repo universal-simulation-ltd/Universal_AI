@@ -20,6 +20,23 @@ Key pieces:
 - **Shell** — Svelte 5 + Vite + `vite-plugin-pwa`. A `capacitor.config.ts` and
   `ios/` scaffold exist for a native iOS wrapper.
 
+  ⚠️ **Build the native bundle with `npm run cap:sync`, never a bare
+  `npx cap sync`.** `cap` copies whatever is sitting in `dist`, and after
+  `npm run build` that is the *web* build — service worker included. The
+  `cap:sync` script runs `build:mobile` (`--mode mobile`, which drops the PWA
+  plugin) and then `scripts/verify-mobile-bundle.mjs`, which fails the build if
+  `sw.js` / `registerSW.js` / `workbox-*.js` reached the copied bundle or if any
+  asset URL in its `index.html` does not resolve inside it. The iOS bundle
+  shipped all three worker files until 2026-08-30; nothing broke, because
+  WKWebView has no service workers on a custom scheme, but that was WebKit's
+  choice rather than ours.
+
+  Unlike the other Capacitor apps in the suite, `--mode mobile` does **not**
+  change `base`. They are served under a path prefix (`/blackbook/`,
+  `/polling/`) so their production asset URLs are wrong inside the app; this
+  app's `base` is `/` everywhere and `capacitor://localhost` roots that at the
+  copied bundle, so there is nothing to correct.
+
 The repo is public and the app is free to use. Unlike most Universal Apps it is
 **not (yet) served by path under `opensource.unisim.co.uk`** — it's a
 local-first, desktop/mobile-oriented app installed as a PWA. See the root

@@ -8,6 +8,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:mobile": "vite build --mode mobile",
+    "check:mobile-bundle": "node scripts/verify-mobile-bundle.mjs",
+    "cap:sync": "npm run build:mobile && npx cap sync && npm run check:mobile-bundle",
+    "cap:open:ios": "npx cap open ios",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "build:knowledge": "node scripts/build-knowledge-pack.mjs"
@@ -16,7 +20,6 @@
     "@huggingface/transformers": "^3.3.3",
     "@mlc-ai/web-llm": "^0.2.79",
     "@supabase/supabase-js": "^2.110.0",
-    "@unisim/sdk": "^0.103.0",
     "@wllama/wllama": "^2.4.0"
   },
   "devDependencies": {
