@@ -132,3 +132,9 @@ src/
 - PDF ingestion (today: plain text / markdown).
 - Optionally run embeddings in a worker to keep ingestion fully off the main thread.
 - End-to-end browser verification of both backends (model download + inference).
+
+## Licence
+
+[AGPL-3.0-or-later](LICENSE), with an added permission for app-store
+distribution. Use it, change it, share it — and if you run a changed copy and
+let other people use it over a network, offer them your source.

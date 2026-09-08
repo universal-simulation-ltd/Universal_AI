@@ -172,6 +172,18 @@
   {/if}
 </main>
 
+<!-- AGPL section 13: anyone using this over a network must be OFFERED the
+     source, so the offer has to live in the app itself rather than only in the
+     repo. This app mounts no shared navbar and therefore has no About dialog to
+     put it in, which is why it is a footer line of its own. Do not remove it
+     without providing the offer somewhere else. -->
+<footer class="colophon">
+  Free software under the
+  <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noreferrer">AGPL-3.0</a>
+  &middot;
+  <a href="https://github.com/universal-simulation-ltd/Universal_AI" target="_blank" rel="noreferrer">Source code</a>
+</footer>
+
 {#if !$modelEverLoaded}
   <WelcomeGate />
 {/if}
@@ -279,5 +291,18 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+  }
+  .colophon {
+    flex: none;
+    padding: 0.4rem 0.75rem;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--muted, #64748b);
+    border-top: 1px solid var(--border);
+  }
+  .colophon a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 </style>
