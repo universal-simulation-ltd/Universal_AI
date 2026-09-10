@@ -2,6 +2,8 @@
   import { saved, saveResponse, unsaveResponse, send, type UIMessage, type Confidence } from '../stores'
   import { settings } from '../settings'
   let { msg }: { msg: UIMessage } = $props()
+  // Stable per-bubble ids so each fold's button can name its panel (aria-controls).
+  const uid = $props.id()
 
   // --- Long-press menu -----------------------------------------------------
   let menuOpen = $state(false)
@@ -223,25 +225,26 @@
               class:open={confOpen}
               aria-label="{CONF_LABEL[msg.confidence]} — tap for details"
               aria-expanded={confOpen}
+              aria-controls="{uid}-conf"
               onclick={() => (confOpen = !confOpen)}
             >
               <span class="dot" aria-hidden="true"></span>
             </button>
           {/if}
           {#if refSources.length}
-            <button class="chip" class:on={sourcesOpen} aria-expanded={sourcesOpen} onclick={() => (sourcesOpen = !sourcesOpen)}>
+            <button class="chip" class:on={sourcesOpen} aria-expanded={sourcesOpen} aria-controls="{uid}-sources" onclick={() => (sourcesOpen = !sourcesOpen)}>
               📖 References ({refSources.length})
             </button>
           {/if}
           {#if msg.query}
-            <button class="chip web" class:on={onlineOpen} aria-expanded={onlineOpen} onclick={() => (onlineOpen = !onlineOpen)} title="Look this up online">
+            <button class="chip web" class:on={onlineOpen} aria-expanded={onlineOpen} aria-controls="{uid}-online" onclick={() => (onlineOpen = !onlineOpen)} title="Look this up online">
               🌐 Online
             </button>
           {/if}
         </div>
 
         {#if onlineOpen && msg.query}
-          <div class="providers">
+          <div class="providers" id="{uid}-online">
             <span class="prov-label">Search this online:</span>
             <div class="prov-list">
               {#each WEB_PROVIDERS as p}
@@ -252,7 +255,7 @@
         {/if}
 
         {#if confOpen && msg.confidence}
-          <div class="detail">
+          <div class="detail" id="{uid}-conf">
             <div class="detail-head"><span class="dot {msg.confidence}" aria-hidden="true"></span> {CONF_LABEL[msg.confidence]} · {confPct}% match</div>
             <p>{CONF_DESC[msg.confidence]}</p>
             <p class="muted-note">{webVerified ? '🌐 Includes live web sources. ' : '📚 Grounded in knowledge on your device. '}It reflects how well the answer is supported by its sources — not a guarantee of factual accuracy.</p>
@@ -271,7 +274,7 @@
       </div>
 
       {#if sourcesOpen && refSources.length}
-        <ol class="sources">
+        <ol class="sources" id="{uid}-sources">
           {#each refSources as src}
             {@const linkUrl = src.url ?? wikiLookupUrl(src.source)}
             <li class:active={active === src.n}>

@@ -33,6 +33,8 @@
   function toggleInfo(id: string) {
     infoFor = infoFor === id ? null : id
   }
+  // Each (i) button names the "about" panel it opens (aria-controls).
+  const uid = $props.id()
 
   // The persona a character-pack row represents.
   const personaOf = (kbId: string): Persona => getPersona(personaIdForPackId(kbId))
@@ -172,6 +174,7 @@
         class:open={infoFor === p.id}
         aria-label="About {p.name}"
         aria-expanded={infoFor === p.id}
+        aria-controls="{uid}-about-{p.id}"
         onclick={() => toggleInfo(p.id)}
       >i</button>
       {#if prog != null}
@@ -191,7 +194,7 @@
       {/if}
     </div>
     {#if infoFor === p.id}
-      <div class="about">
+      <div class="about" id="{uid}-about-{p.id}">
         <p>{p.about}</p>
         <p class="knows"><b>Knows about:</b> {p.domain}</p>
       </div>
