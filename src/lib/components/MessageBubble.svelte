@@ -232,12 +232,15 @@
             </button>
           {/if}
           {#if refSources.length}
-            <button class="chip" class:on={sourcesOpen} aria-expanded={sourcesOpen} aria-controls="{uid}-sources" onclick={() => (sourcesOpen = !sourcesOpen)}>
+            <!-- The suite's Orbit filter chip (u-chip--pick, CSS in app.css).
+                 It draws its open state from aria-pressed, so that carries the
+                 same value as aria-expanded. -->
+            <button class="u-chip u-chip--pick" aria-pressed={sourcesOpen} aria-expanded={sourcesOpen} aria-controls="{uid}-sources" onclick={() => (sourcesOpen = !sourcesOpen)}>
               📖 References ({refSources.length})
             </button>
           {/if}
           {#if msg.query}
-            <button class="chip web" class:on={onlineOpen} aria-expanded={onlineOpen} aria-controls="{uid}-online" onclick={() => (onlineOpen = !onlineOpen)} title="Look this up online">
+            <button class="u-chip u-chip--pick" aria-pressed={onlineOpen} aria-expanded={onlineOpen} aria-controls="{uid}-online" onclick={() => (onlineOpen = !onlineOpen)} title="Look this up online">
               🌐 Online
             </button>
           {/if}
@@ -446,20 +449,6 @@
     100% { box-shadow: 0 0 0 0 transparent; }
   }
 
-  .chip {
-    font-size: 0.72rem; font-weight: 600;
-    padding: 0.22rem 0.6rem;
-    background: var(--surface-2); color: var(--text-dim);
-    border: 1px solid var(--border); border-radius: 999px;
-    white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;
-  }
-  .chip:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
-  .chip.on {
-    color: var(--accent);
-    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-    background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
-  }
-  .chip.web { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
   .providers { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; }
   .prov-label { font-size: 0.72rem; font-weight: 600; color: var(--text-dim); }
   .prov-list { display: flex; gap: 0.5rem; flex-wrap: wrap; }

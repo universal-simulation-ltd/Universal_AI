@@ -49,7 +49,8 @@
         <span class="switch" aria-hidden="true"></span>
         <span class="toggle-label">Private mode</span>
       </label>
-      <span class="locked-badge">Always on</span>
+      <!-- The suite's Value chip (CSS in app.css): a status, so a good-toned band. -->
+      <span class="u-vchip u-vchip--sm" data-tone="good"><span class="u-vchip__key"></span><span class="u-vchip__value">Always on</span></span>
     </div>
     <p class="hint">Chats and documents run entirely on your device and are never sent to a server. The only network use is what you opt into — web search or Universal ID backup.</p>
   </section>
@@ -324,17 +325,6 @@
   .warn { color: var(--danger); font-size: 0.78rem; }
   .locked-row { display: flex; align-items: center; gap: 0.6rem; }
   .locked { opacity: 0.65; cursor: default; pointer-events: none; }
-  .locked-badge {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--ok);
-    border: 1px solid var(--ok);
-    border-radius: 999px;
-    padding: 0.05rem 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-  }
   .toggle input:disabled + .switch { background: var(--accent); border-color: var(--accent); }
   .toggle input:disabled + .switch::after { transform: translateX(18px); background: #fff; }
 </style>

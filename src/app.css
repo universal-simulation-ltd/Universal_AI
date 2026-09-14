@@ -160,3 +160,150 @@ textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 
     font-size: max(16px, 1em) !important;
   }
 }
+
+/* Copied from @unisim/sdk 0.142.2 CHIP_CSS (packages/sdk/src/chipStyles.ts). Don't edit here — change the SDK and re-copy. */
+@property --u-chip-sweep { syntax: "<percentage>"; inherits: false; initial-value: 62%; }
+
+.u-chip, .u-vchip { --_ink: #0f172a; --_soft: #475569; --_ring: #cbd5e1; --_fill: var(--u-chip-fill, #ffffff); --_base: #ffffff; --_accent: var(--u-chip-accent, #e05504); --_accent-text: var(--u-chip-accent-text, #c2410c); --_good: #2f9e57; --_warn: #e0a100; --_crit: #d5443a; --_good-fill: #1f7a40; --_warn-fill: #e0a100; --_crit-fill: #b3261e; --_on-good: #ffffff; --_on-warn: #0f172a; --_on-crit: #ffffff; --_key: #0f172a; --_on-key: #ffffff; --_key-icon: #fe8c01; }
+[data-u-ground="dark"] .u-chip, [data-u-ground="dark"] .u-vchip,
+.dark .u-chip, .dark .u-vchip,
+[data-theme="dark"] .u-chip, [data-theme="dark"] .u-vchip { --_ink: #e6eaf2; --_soft: #9fb0c6; --_ring: rgba(255, 255, 255, 0.26); --_fill: var(--u-chip-fill-dark, transparent); --_base: #0a0e16; --_accent: var(--u-chip-accent-dark, #ff9a1f); --_accent-text: var(--u-chip-accent-text-dark, #ffb25c); --_good: #4bbf78; --_warn: #f2bb2e; --_crit: #f0645a; --_good-fill: #4bbf78; --_warn-fill: #f2bb2e; --_crit-fill: #f0645a; --_on-good: #0a0e16; --_on-warn: #0a0e16; --_on-crit: #0a0e16; --_key: #e6eaf2; --_on-key: #0a0e16; --_key-icon: #c2410c; }
+.u-chip[data-u-ground="light"], .u-vchip[data-u-ground="light"] { --_ink: #0f172a; --_soft: #475569; --_ring: #cbd5e1; --_fill: var(--u-chip-fill, #ffffff); --_base: #ffffff; --_accent: var(--u-chip-accent, #e05504); --_accent-text: var(--u-chip-accent-text, #c2410c); --_good: #2f9e57; --_warn: #e0a100; --_crit: #d5443a; --_good-fill: #1f7a40; --_warn-fill: #e0a100; --_crit-fill: #b3261e; --_on-good: #ffffff; --_on-warn: #0f172a; --_on-crit: #ffffff; --_key: #0f172a; --_on-key: #ffffff; --_key-icon: #fe8c01; }
+.u-chip[data-u-ground="dark"], .u-vchip[data-u-ground="dark"] { --_ink: #e6eaf2; --_soft: #9fb0c6; --_ring: rgba(255, 255, 255, 0.26); --_fill: var(--u-chip-fill-dark, transparent); --_base: #0a0e16; --_accent: var(--u-chip-accent-dark, #ff9a1f); --_accent-text: var(--u-chip-accent-text-dark, #ffb25c); --_good: #4bbf78; --_warn: #f2bb2e; --_crit: #f0645a; --_good-fill: #4bbf78; --_warn-fill: #f2bb2e; --_crit-fill: #f0645a; --_on-good: #0a0e16; --_on-warn: #0a0e16; --_on-crit: #0a0e16; --_key: #e6eaf2; --_on-key: #0a0e16; --_key-icon: #c2410c; }
+
+/* ── Orbit ── */
+.u-chip {
+  --_arc: var(--_accent);
+  --_c: 14px;
+  position: relative;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  /* No margin rule, on purpose (0.142.2). This sheet is injected at runtime,
+     so it lands AFTER the app's CSS and wins every tie: a `margin: 0` here
+     silently beat a Tailwind `mt-2` on the chip itself. Spacing belongs to
+     the app. */
+  padding: 5px 13px 5px 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--_fill);
+  color: var(--_ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: normal;
+  text-transform: none;
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.u-chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from 200deg at var(--_c) 50%,
+    var(--_ring) 0%, var(--_arc) 9%, var(--_arc) var(--u-chip-sweep), var(--_ring) var(--u-chip-sweep));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: --u-chip-sweep 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.u-chip[data-tone="good"] { --_arc: var(--_good); }
+.u-chip[data-tone="warn"] { --_arc: var(--_warn); }
+.u-chip[data-tone="crit"] { --_arc: var(--_crit); }
+.u-chip__icon { display: inline-flex; flex: none; color: var(--_accent); }
+.u-chip__icon > svg { width: 14px; height: 14px; }
+.u-chip b, .u-chip strong { font-weight: 800; }
+
+.u-chip--sm {
+  --_c: 10.5px;
+  gap: 4px;
+  min-height: 21px;
+  padding: 3px 9px 3px 8px;
+  font-size: 10.5px;
+}
+.u-chip--sm .u-chip__icon > svg { width: 12px; height: 12px; }
+
+button.u-chip, .u-chip--pick { cursor: pointer; appearance: none; -webkit-appearance: none; }
+a.u-chip:hover::before, .u-chip--pick:hover::before { --u-chip-sweep: 82%; }
+.u-chip--pick[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--_accent) 8%, var(--_base));
+  color: var(--_accent-text);
+}
+.u-chip--pick[aria-pressed="true"]::before { --u-chip-sweep: 100%; }
+.u-chip--pick[aria-pressed="true"] .u-chip__icon { color: var(--_accent-text); }
+.u-chip--pick:disabled { cursor: default; opacity: 0.5; }
+.u-chip:focus-visible { outline: 2px solid var(--_accent); outline-offset: 2px; }
+
+/* ── Value ── */
+.u-vchip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--_ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: normal;
+  text-transform: none;
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.u-vchip__key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border-radius: 6px 0 0 6px;
+  background: var(--_key);
+  color: var(--_on-key);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.u-vchip__key > svg { width: 13px; height: 13px; flex: none; color: var(--_key-icon); }
+.u-vchip__key:empty { width: 7px; padding: 0; }
+.u-vchip__value {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px 4px 9px;
+  border: 1px solid var(--_ring);
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  background: var(--_fill);
+}
+.u-vchip[data-tone="good"] .u-vchip__key { background: var(--_good-fill); color: var(--_on-good); }
+.u-vchip[data-tone="warn"] .u-vchip__key { background: var(--_warn-fill); color: var(--_on-warn); }
+.u-vchip[data-tone="crit"] .u-vchip__key { background: var(--_crit-fill); color: var(--_on-crit); }
+.u-vchip[data-tone] .u-vchip__key > svg { color: inherit; }
+.u-vchip__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.u-vchip--sm { font-size: 10.5px; }
+.u-vchip--sm .u-vchip__key { padding: 3px 6px; font-size: 9.5px; }
+.u-vchip--sm .u-vchip__value { padding: 2px 8px 2px 7px; }
+.u-vchip--sm .u-vchip__key:empty { width: 6px; padding: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .u-chip::before { transition: none; }
+}
