@@ -7,8 +7,21 @@ import { writable } from 'svelte/store'
 export type ThemePref = 'light' | 'dark' | 'system'
 
 export interface Settings {
-  /** Colour theme. 'system' follows the OS light/dark setting. */
+  /** Colour theme. 'system' follows the OS light/dark setting. LIGHT until the
+   *  user picks otherwise — the suite rule is that an app never opens dark on
+   *  its own, even on a device set to dark. */
   theme: ThemePref
+  /**
+   * Has the user actually picked a theme in Customise? Needed because this whole
+   * object is written back to storage on every load, and the default used to be
+   * 'system' — so every earlier visitor has `theme: 'system'` saved whether or
+   * not they ever chose it. A saved 'system' WITHOUT this flag is that old
+   * default, not a choice, and is read as 'light'. 'light' / 'dark' were only
+   * ever saved by a click, so they are honoured as they are.
+   *
+   * ⚠️ index.html repeats this rule in its pre-paint script — change both.
+   */
+  themeChosen: boolean
   /** Optional name for the assistant itself ("my name") — what it calls itself. */
   aiName: string
   /** Optional display name for the user ("your name") so the assistant can
@@ -41,7 +54,8 @@ export interface Settings {
 const KEY = 'universal-ai:settings'
 
 const DEFAULTS: Settings = {
-  theme: 'system',
+  theme: 'light',
+  themeChosen: false,
   aiName: '',
   userName: '',
   personaId: '',
@@ -54,7 +68,11 @@ function load(): Settings {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null
     if (!raw) return { ...DEFAULTS }
-    return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) }
+    const s: Settings = { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) }
+    // The old 'system' default, saved without anyone choosing it — see
+    // `themeChosen`. Light, as a new visitor gets.
+    if (s.theme === 'system' && !s.themeChosen) s.theme = 'light'
+    return s
   } catch {
     return { ...DEFAULTS }
   }
@@ -67,6 +85,14 @@ export const settings = writable<Settings>(load())
 // that first call would hit its temporal dead zone: V8 tolerates it, but
 // JavaScriptCore (Safari / iOS WKWebView) throws, blanking the app on launch.
 let mediaQuery: MediaQueryList | null = null
+
+/** The browser-chrome tint for each theme: the top bar's own surface in light,
+ *  the dark ground it always used in dark. Kept in step with index.html.
+ *  ⚠️ Up here for the same temporal-dead-zone reason as `mediaQuery` — the
+ *  first applyTheme() runs during the subscribe below, and a `const` declared
+ *  after it blanks the app ("Cannot access 'THEME_COLOR' before
+ *  initialization"), which is exactly what happened when it sat lower down. */
+const THEME_COLOR = { light: '#f6f8fb', dark: '#0b0d12' } as const
 
 // Persist + re-apply the theme on every change.
 settings.subscribe((s) => {
@@ -95,7 +121,7 @@ function resolveTheme(pref: ThemePref): 'light' | 'dark' {
  */
 export function applyTheme(pref: ThemePref): void {
   if (typeof document === 'undefined') return
-  document.documentElement.dataset.theme = resolveTheme(pref)
+  paint(resolveTheme(pref))
 
   // (Re)wire the OS listener only while tracking the system preference.
   if (mediaQuery) {
@@ -104,14 +130,17 @@ export function applyTheme(pref: ThemePref): void {
   }
   if (pref === 'system' && typeof matchMedia !== 'undefined') {
     mediaQuery = matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.onchange = () => {
-      document.documentElement.dataset.theme = resolveTheme('system')
-    }
+    mediaQuery.onchange = () => paint(resolveTheme('system'))
   }
 }
 
+function paint(theme: 'light' | 'dark'): void {
+  document.documentElement.dataset.theme = theme
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme])
+}
+
 export function setTheme(theme: ThemePref): void {
-  settings.update((s) => ({ ...s, theme }))
+  settings.update((s) => ({ ...s, theme, themeChosen: true }))
 }
 
 export function setAiName(aiName: string): void {

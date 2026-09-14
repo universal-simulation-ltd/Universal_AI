@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -11,7 +11,27 @@
          first place and leaves pinch-zoom alone. Universal QR and Universal
          Compress carry the same pair. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b0d12" />
+    <meta name="theme-color" content="#f6f8fb" />
+    <!-- ⚠️ THE THEME, BEFORE THE FIRST PIXEL. app.css's base palette is the DARK
+         one (light is the `data-theme="light"` override), so without the
+         attribute on <html> above, the page would paint dark until the module
+         bundle ran settings.ts. The attribute makes light the no-JS default;
+         this switches to dark only for someone who chose it — the same rule as
+         settings.ts `load()`, including reading an unchosen saved 'system' (the
+         old default) as light. Change the two together. It sits after the
+         theme-color meta so it can retint that too. -->
+    <script>
+      try {
+        var s = JSON.parse(localStorage.getItem('universal-ai:settings') || '{}')
+        var t = s.theme === 'system' && !s.themeChosen ? 'light' : s.theme
+        if (t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.dataset.theme = 'dark'
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0b0d12')
+        }
+      } catch (e) {
+        /* private mode, storage disabled, bad JSON: light, as settings.ts falls back. */
+      }
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Universal AI" />

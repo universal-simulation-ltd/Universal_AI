@@ -5,6 +5,10 @@
   --border: #283042;
   --text: #e7ecf3;
   --text-dim: #95a0b4;
+  /* The colophon's ink. It read an undefined `--muted` and fell back to
+     #64748b in BOTH themes — 4.08:1 on this ground, under AA for its 11.5px
+     type. This is 7.37:1; light keeps #64748b (4.76:1 on white). */
+  --muted: #95a0b4;
   --accent: #ff9a1f;
   --accent-press: #e05504;
   /* Text/icons rendered ON the accent colour. Dark ink works on the pale
@@ -42,6 +46,7 @@
   --border: #d8dee9;
   --text: #0f172a;
   --text-dim: #5b6678;
+  --muted: #64748b;
   --accent: #e05504;
   --accent-press: #b1490a;
   --on-accent: #ffffff;
