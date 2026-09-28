@@ -15,6 +15,7 @@
     "cap:open:ios": "npx cap open ios",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test:status-bar": "node --experimental-strip-types scripts/systemBars.test.mjs",
     "build:knowledge": "node scripts/build-knowledge-pack.mjs"
   },
   "dependencies": {
