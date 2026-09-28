@@ -14,6 +14,12 @@
   } from '../stores'
   import { settings, setTheme, setAiName, setUserName, setWebSearch, setSafeMode, setClearOnClose, type ThemePref } from '../settings'
   import UniversalIdBackup from './UniversalIdBackup.svelte'
+  import KnowledgeBaseDialog from './KnowledgeBaseDialog.svelte'
+
+  // The in-app knowledge base (articles on how the app works). Kept discreet at
+  // the foot of the page, as the other Universal Apps keep theirs under
+  // Actions ▸ Advanced.
+  let kbOpen = $state(false)
 
   let models = $derived(modelsFor($backend))
   let pct = $derived(Math.round(($loadProgress?.progress ?? 0) * 100))
@@ -216,7 +222,25 @@
 
   <!-- Universal ID settings backup -->
   <UniversalIdBackup />
+
+  <!-- Advanced — the knowledge base, discreet like the suite's Actions ▸ Advanced -->
+  <section class="advanced">
+    <h3>Advanced</h3>
+    <button type="button" class="adv-row" onclick={() => (kbOpen = true)}>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+        <path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" />
+        <path d="M8 7h8M8 11h6" />
+      </svg>
+      <span class="adv-label">Knowledge base</span>
+      <svg class="adv-chev" viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
+        <path d="M4 2 L8 6 L4 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+  </section>
 </div>
+
+<KnowledgeBaseDialog open={kbOpen} onclose={() => (kbOpen = false)} />
 
 <style>
   .customise {
@@ -327,4 +351,21 @@
   .locked { opacity: 0.65; cursor: default; pointer-events: none; }
   .toggle input:disabled + .switch { background: var(--accent); border-color: var(--accent); }
   .toggle input:disabled + .switch::after { transform: translateX(18px); background: #fff; }
+  .advanced h3 { font-size: 0.8rem; color: var(--text-dim); }
+  .adv-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    background: transparent;
+    border-color: transparent;
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    text-align: left;
+  }
+  .adv-row:hover { background: var(--surface-2); color: var(--text); }
+  .adv-label { flex: 1; }
+  .adv-chev { flex: 0 0 auto; }
 </style>
