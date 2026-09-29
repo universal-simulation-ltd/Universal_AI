@@ -3,16 +3,25 @@
   // model?") beside how Universal AI itself works (what leaves the device,
   // what is stored). The other Universal Apps read theirs in @unisim/sdk's
   // React <KnowledgeBaseDialog>; this is its Svelte twin, with the same
-  // behaviour: a list grouped by heading → an article, Escape steps back out of
-  // an article before it closes, and bodies are rendered as elements from a
-  // closed mini-markdown (see src/knowledge/body.ts), never as HTML.
+  // behaviour: cards grouped and coloured by heading → an article with its
+  // guide PDF and research beside it (owner ask, 2026-09-29: "more like the
+  // knowledge base on Ergo Assess … cards to click through and downloads
+  // available in PDFs. Research papers are the best"), Escape steps back out
+  // of an article before it closes, and bodies are rendered as elements from
+  // a closed mini-markdown (see src/knowledge/body.ts), never as HTML.
+  //
+  // Every download is an https link into opensource.unisim.co.uk/kb/, never a
+  // bundled file — a relative PDF link would navigate the phone app's webview
+  // with no way back. Hosted papers are only those whose licence allows it.
   //
   // One difference: the app's interface is English-only, so there is no app
   // language to follow. The reader has its own picker, defaulting to the
   // device's language and remembered on this device.
   import { tick } from 'svelte'
   import {
+    GUIDES_BASE,
     LANGUAGES,
+    LIBRARY_URL,
     UI,
     detectLanguage,
     loadArticles,
@@ -42,8 +51,21 @@
   let card: HTMLDivElement | undefined = $state()
 
   let ui = $derived(UI[language])
-  let article = $derived(current && list ? (list.find((a) => a.id === current) ?? null) : null)
+  let index = $derived(current && list ? list.findIndex((a) => a.id === current) : -1)
+  let article = $derived(index >= 0 && list ? list[index] : null)
+  let prev = $derived(index > 0 && list ? list[index - 1] : null)
+  let next = $derived(index >= 0 && list ? (list[index + 1] ?? null) : null)
   let blocks = $derived(article ? parseArticleBody(article.body) : [])
+
+  // Each group takes the next hue in turn, so cards in one section match.
+  const HUES = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e']
+  function hueOf(a: Article): string {
+    const order: string[] = []
+    for (const x of list ?? []) if (!order.includes(x.group ?? '')) order.push(x.group ?? '')
+    return HUES[Math.max(0, order.indexOf(a.group ?? '')) % HUES.length]
+  }
+  const paperUrl = (path: string) => (/^https?:\/\//.test(path) ? path : `${LIBRARY_URL}/${path.replace(/^\//, '')}`)
+  const count = (n: number) => (n === 1 ? ui.sourcesCountOne : ui.sourcesCount.replace('{n}', String(n)))
 
   // Consecutive runs of the same group, in the order the articles are given.
   let runs = $derived.by(() => {
@@ -130,8 +152,13 @@
           </svg>
           {ui.back}
         </button>
-        <h2 class="article-title">{article.title}</h2>
-        <div class="body" lang={language}>
+        <div class="hero" style="--hue: {hueOf(article)}">
+          {#if article.group}<p class="eyebrow">{article.group}</p>{/if}
+          <h2 class="article-title">{article.title}</h2>
+          {#if article.summary}<p class="lede">{article.summary}</p>{/if}
+        </div>
+        <div class="layout" lang={language}>
+        <div class="body">
           {#each blocks as b}
             {#if b.kind === 'h'}
               <h3>{#each inlineRuns(b.text) as r}{#if r.bold}<strong>{r.text}</strong>{:else}{r.text}{/if}{/each}</h3>
@@ -152,6 +179,38 @@
             {/if}
           {/each}
         </div>
+        <aside>
+          <a class="guide" style="--hue: {hueOf(article)}" href="{GUIDES_BASE}/{language}/{article.id}.pdf" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>
+            {ui.downloadGuide}
+          </a>
+          {#if article.sources?.length}
+            <div class="sources">
+              <p class="group">{ui.sources}</p>
+              {#each article.sources as s (s.href)}
+                <div class="source">
+                  <span class="kind">{ui.kinds[s.kind]}</span>
+                  <a class="source-title" href={s.href} target="_blank" rel="noopener noreferrer">{s.title}</a>
+                  {#if s.authors || s.publisher || s.year}
+                    <span class="byline">{[s.authors, s.publisher, s.year].filter(Boolean).join(' · ')}</span>
+                  {/if}
+                  <span class="pills">
+                    {#if s.pdf}<a class="pill primary" href={paperUrl(s.pdf)} target="_blank" rel="noopener noreferrer">↓ PDF</a>{/if}
+                    <a class="pill" href={s.href} target="_blank" rel="noopener noreferrer">{s.pdf ? ui.publisher : ui.readSource} ↗</a>
+                  </span>
+                  {#if s.pdf && s.licence}<span class="licence">{s.licence}</span>{/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </aside>
+        </div>
+        {#if prev || next}
+          <nav class="pager">
+            {#if prev}<button type="button" onclick={() => (current = prev!.id)}><small>← {ui.previous}</small>{prev.title}</button>{:else}<span></span>{/if}
+            {#if next}<button type="button" class="right" onclick={() => (current = next!.id)}><small>{ui.next} →</small>{next.title}</button>{:else}<span></span>{/if}
+          </nav>
+        {/if}
       {:else}
         <div class="identity">
           <span class="mark" aria-hidden="true">
@@ -184,24 +243,24 @@
         {:else if !list}
           <p class="status faint">{ui.loading}</p>
         {:else}
+          <p class="intro">{ui.intro}</p>
           <div class="groups" lang={language}>
             {#each runs as run, i (`${run.group ?? ''}-${i}`)}
-              <div>
+              <section>
                 {#if run.group}<p class="group">{run.group}</p>{/if}
-                <div class="rows">
+                <div class="cards">
                   {#each run.items as a (a.id)}
-                    <button type="button" class="row" onclick={() => (current = a.id)}>
-                      <span class="row-text">
-                        <span class="row-title">{a.title}</span>
-                        {#if a.summary}<span class="row-summary">{a.summary}</span>{/if}
+                    <button type="button" class="kb-card" style="--hue: {hueOf(a)}" onclick={() => (current = a.id)}>
+                      <span class="card-title">{a.title}</span>
+                      {#if a.summary}<span class="card-summary">{a.summary}</span>{/if}
+                      <span class="card-foot">
+                        <span>{a.sources?.length ? count(a.sources.length) : ''}</span>
+                        <span class="read">{ui.read} →</span>
                       </span>
-                      <svg class="chev" viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-                        <path d="M4 2 L8 6 L4 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
                     </button>
                   {/each}
                 </div>
-              </div>
+              </section>
             {/each}
           </div>
         {/if}
@@ -214,7 +273,8 @@
   /* The same shell as the welcome card (WelcomeGate.svelte): a blurred scrim
      that carries the safe-area insets, and a surface card on the theme's
      tokens, so light and dark both follow app.css. Wider than that card
-     (35rem ≈ 560px, as in the SDK's reader) because this one is for reading. */
+     (61rem ≈ 980px, as in the SDK's reader): three columns of cards, or an
+     article beside its sources. */
   .scrim {
     position: fixed;
     inset: 0;
@@ -229,8 +289,9 @@
   .card {
     position: relative;
     width: 100%;
-    max-width: 35rem;
-    max-height: 100%;
+    max-width: 61rem;
+    height: 100%;
+    max-height: 56rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     background: var(--surface);
@@ -327,30 +388,59 @@
     text-transform: uppercase;
     color: var(--text-dim);
   }
-  .rows { display: grid; gap: 2px; margin: 0 -0.6rem; }
-  .row {
+  .intro { margin: 0 0 1rem; font-size: 0.85rem; line-height: 1.55; color: var(--text-dim); }
+  .groups { gap: 1.25rem; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.6rem; }
+  .kb-card {
     display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    width: 100%;
-    padding: 0.5rem 0.6rem;
-    border: 0;
-    border-radius: 8px;
+    flex-direction: column;
+    min-height: 8.25rem;
+    padding: 0.85rem 0.85rem 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--hue);
+    border-radius: 12px;
     background: transparent;
     text-align: left;
-    transition: background 0.12s ease;
+    transition: border-color 0.12s ease, transform 0.12s ease;
   }
-  .row:hover { background: var(--surface-2); }
-  .row-text { flex: 1; min-width: 0; }
-  .row-title { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text); }
-  .row-summary {
-    display: block;
-    margin-top: 0.12rem;
-    font-size: 0.72rem;
-    line-height: 1.4;
-    color: var(--text-dim);
+  .kb-card:hover { border-color: var(--hue); transform: translateY(-1px); }
+  .card-title { font-size: 0.88rem; font-weight: 700; line-height: 1.35; color: var(--text); }
+  .card-summary { margin-top: 0.35rem; font-size: 0.78rem; line-height: 1.45; color: var(--text-dim); }
+  .card-foot { display: flex; justify-content: space-between; gap: 0.5rem; margin-top: auto; padding-top: 0.75rem; font-size: 0.72rem; color: var(--text-dim); }
+  .read { color: var(--hue); font-weight: 650; }
+  .hero {
+    margin: 0.6rem 0 1.25rem;
+    padding: 1rem 1.1rem;
+    border-left: 4px solid var(--hue);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--hue) 12%, transparent);
   }
-  .chev { flex: 0 0 auto; color: var(--text-dim); }
+  .hero .article-title { margin: 0 2.2rem 0 0; font-size: 1.25rem; }
+  .eyebrow { margin: 0 0 0.35rem; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--hue); }
+  .lede { margin: 0.4rem 0 0; font-size: 0.85rem; color: var(--text-dim); }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 16.25rem; gap: 1.5rem; align-items: start; }
+  @media (max-width: 760px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+  .layout .body { max-width: 40rem; }
+  aside { display: grid; gap: 0.9rem; }
+  .guide {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.62rem 0.75rem; border-radius: 10px;
+    background: var(--hue); color: #fff; font-size: 0.8rem; font-weight: 650; text-decoration: none;
+  }
+  .sources { padding: 0.85rem 0.85rem 1rem; border: 1px solid var(--border); border-radius: 12px; display: grid; gap: 0.75rem; }
+  .sources .group { margin: 0; }
+  .source { display: grid; justify-items: start; }
+  .kind { margin-bottom: 0.25rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); font-size: 0.63rem; font-weight: 650; }
+  .source-title { font-size: 0.78rem; font-weight: 650; line-height: 1.4; color: var(--text); text-decoration: none; }
+  .byline { margin-top: 0.12rem; font-size: 0.72rem; line-height: 1.4; color: var(--text-dim); }
+  .pills { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.375rem; }
+  .pill { padding: 0.19rem 0.56rem; border: 1px solid var(--border); border-radius: 999px; color: var(--text-dim); font-size: 0.69rem; font-weight: 650; text-decoration: none; white-space: nowrap; }
+  .pill.primary { border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+  .licence { margin-top: 0.25rem; font-size: 0.66rem; line-height: 1.35; color: var(--text-dim); }
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1.6rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .pager button { display: grid; gap: 0.12rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text); font-size: 0.8rem; font-weight: 600; text-align: left; }
+  .pager button.right { text-align: right; }
+  .pager small { font-size: 0.69rem; font-weight: 400; color: var(--text-dim); }
   .body { display: grid; gap: 0.65rem; }
   .body h3 { margin: 0.35rem 0 0; font-size: 0.85rem; font-weight: 700; color: var(--text); }
   .body p,
