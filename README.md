@@ -1,5 +1,10 @@
 # Universal AI — Offline LLM Chatbot (PWA)
 
+> **Retired 2026-10-05 — coming back later.** Universal AI was never deployed
+> and is paused. This repository is archived (read-only) and kept for when it
+> returns; meanwhile the [Universal Apps portal](https://opensource.unisim.co.uk/#universal-ai)
+> shows it as *Coming soon*.
+
 A mobile-first, installable Progressive Web App that runs a small general-purpose
 LLM **entirely on-device** — no server, no API calls — and lets you plug in your
 own **RAG knowledge bases** to ground answers.
