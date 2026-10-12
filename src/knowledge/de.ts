@@ -155,7 +155,7 @@ Keine dieser Anfragen enthält Ihre Nachrichten oder Dokumente.
 
 ## Websuche, standardmäßig aus
 
-Wenn Sie Customise ▸ Online web search einschalten und Ihr Gerät online ist, wird jede Nachricht, die Sie senden, auch als Suche an die englische Wikipedia geschickt. Die Ergebnisse werden dann auf Ihrem Gerät mit Ihrer Frage verglichen. Mit eingeschalteter Websuche verlassen Ihre Fragen Ihr Gerät also, in Richtung Wikipedia. Ist sie aus, geschieht das nie.
+Wenn Sie Customise ▸ Online web search einschalten und Ihr Gerät online ist, werden die Schlüsselwörter jeder Nachricht, die Sie senden, auch als Suche an die englische Wikipedia geschickt: höchstens acht Wörter, ohne häufige Wörter wie „the“ oder „what“, Links, E-Mail-Adressen und lange Zahlen. Ihre ganze Nachricht wird nie gesendet. Die Ergebnisse werden dann auf Ihrem Gerät mit Ihrer Frage verglichen. Mit eingeschalteter Websuche verlassen die Schlüsselwörter Ihrer Fragen Ihr Gerät also, in Richtung Wikipedia. Ist sie aus, verlässt nichts Ihr Gerät.
 
 ## Links, die Sie öffnen
 
@@ -167,7 +167,7 @@ Die App nimmt keinen Kontakt zum Universal-ID-Dienst auf, bis Sie sich im Tab Cu
 
 ## Was nie hinausgeht
 
-Ihre Chats, gespeicherten Antworten und Dokumente werden nie hochgeladen, mit einer Ausnahme: Bei eingeschalteter Websuche gehen Ihre Fragen wie oben beschrieben an Wikipedia.`,
+Ihre Chats, gespeicherten Antworten und Dokumente werden nie hochgeladen, mit einer Ausnahme: Bei eingeschalteter Websuche gehen die Schlüsselwörter Ihrer Fragen wie oben beschrieben an Wikipedia.`,
   },
   {
     id: 'what-is-stored',

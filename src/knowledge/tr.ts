@@ -155,7 +155,7 @@ Bu isteklerin hiçbiri mesajlarınızı ya da belgelerinizi içermez.
 
 ## Web araması, varsayılan olarak kapalı
 
-Customise ▸ Online web search seçeneğini açarsanız ve cihazınız çevrimiçiyse, gönderdiğiniz her mesaj ayrıca İngilizce Wikipedia'ya arama olarak gönderilir. Sonuçlar daha sonra cihazınızda sorunuzla karşılaştırılır. Yani web araması açıkken sorularınız cihazınızdan çıkar ve Wikipedia'ya gider. Kapalıyken asla çıkmaz.
+Customise ▸ Online web search seçeneğini açarsanız ve cihazınız çevrimiçiyse, gönderdiğiniz her mesajın anahtar kelimeleri ayrıca İngilizce Wikipedia'ya arama olarak gönderilir: en fazla sekiz kelime; "the" veya "what" gibi yaygın kelimeler, bağlantılar, e-posta adresleri ve uzun sayılar çıkarılır. Mesajınızın tamamı asla gönderilmez. Sonuçlar daha sonra cihazınızda sorunuzla karşılaştırılır. Yani web araması açıkken sorularınızın anahtar kelimeleri cihazınızdan çıkar ve Wikipedia'ya gider. Kapalıyken hiçbir şey çıkmaz.
 
 ## Açtığınız bağlantılar
 
@@ -167,7 +167,7 @@ Uygulama, Customise sekmesinde oturum açana kadar Universal ID hizmetiyle hiç 
 
 ## Asla çıkmayanlar
 
-Sohbetleriniz, kaydettiğiniz yanıtlar ve belgeleriniz asla yüklenmez; tek bir istisnayla: web araması açıkken sorularınız yukarıda anlatıldığı gibi Wikipedia'ya gider.`,
+Sohbetleriniz, kaydettiğiniz yanıtlar ve belgeleriniz asla yüklenmez; tek bir istisnayla: web araması açıkken sorularınızın anahtar kelimeleri yukarıda anlatıldığı gibi Wikipedia'ya gider.`,
   },
   {
     id: 'what-is-stored',

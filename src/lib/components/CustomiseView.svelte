@@ -58,7 +58,7 @@
       <!-- The suite's Value chip (CSS in app.css): a status, so a good-toned band. -->
       <span class="u-vchip u-vchip--sm" data-tone="good"><span class="u-vchip__key"></span><span class="u-vchip__value">Always on</span></span>
     </div>
-    <p class="hint">Chats and documents run entirely on your device and are never sent to a server. The only network use is what you opt into — web search or Universal ID backup.</p>
+    <p class="hint">Chats and documents run entirely on your device and are never sent to a server. Besides downloading models and packs, the only network use is what you opt into — web search (a few key words of each message, to Wikipedia) or Universal ID backup (your settings).</p>
   </section>
 
   <!-- Appearance -->
@@ -166,8 +166,9 @@
       Off keeps the app fully offline and private. When on, the <b>Online</b>
       button on answers can search the web — <b>Wikipedia</b> or <b>DuckDuckGo</b>
       (more to come) — and opens straight away without the extra “open link?”
-      confirmation. When connected, chats can also cite real web links alongside
-      your documents.
+      confirmation. When connected, the key words of each message (up to eight,
+      never the whole message) are searched on Wikipedia, so chats can also cite
+      real web links alongside your documents.
     </p>
     <label class="toggle">
       <input

@@ -6,7 +6,7 @@
 > shows it as *Coming soon*.
 
 A mobile-first, installable Progressive Web App that runs a small general-purpose
-LLM **entirely on-device** — no server, no API calls — and lets you plug in your
+LLM **entirely on-device** — no AI server, no API calls — and lets you plug in your
 own **RAG knowledge bases** to ground answers.
 
 ## What is RAG?
@@ -32,9 +32,25 @@ relevant page first.
 | Bundled knowledge | Pre-built Simple Wikipedia pack (`scripts/build-knowledge-pack.mjs`) | 25k article intros, int8-quantized, shipped via Git LFS; downloaded + cached on demand so general-knowledge answers can cite a source offline. |
 | Shell | Svelte 5 + Vite + `vite-plugin-pwa` | Installable, offline app shell. |
 
-Nothing leaves the device. The only network traffic is the **first-run download**
-of the model + embedding weights, which are then cached (WebLLM/transformers
-manage their own cache; the app shell is precached by the service worker).
+Chats and documents are answered on the device. Network traffic is:
+
+- the **first-run download** of the model + embedding weights, which are then
+  cached (WebLLM/transformers manage their own cache; the app shell is
+  precached by the service worker), and knowledge packs when you tap Download;
+- **opt-in web search** (Customise, off by default): while it is on and the
+  device is online, the key words of each message — at most eight, with common
+  words, links, email addresses and long numbers dropped
+  (`toSearchQuery` in `src/lib/rag/websearch.ts`), never the whole message —
+  are sent as a search to English Wikipedia;
+- **opt-in Universal ID settings backup** (Customise, only after you log in):
+  your email address to receive a one-time code, then the Customise settings
+  (theme, the names you entered, chosen character, the on/off switches) are
+  uploaded to your UNI·SIM account when you tap Back up
+  (`src/lib/universalId.ts`). Chats, saved answers and documents are never
+  uploaded.
+
+The in-app article "What leaves your device, and when?" (`src/knowledge/`) is
+the full list.
 
 ## Requirements
 

@@ -155,7 +155,7 @@ Aucune de ces requêtes ne contient vos messages ni vos documents.
 
 ## La recherche sur le web, désactivée par défaut
 
-Si vous activez Customise ▸ Online web search et que votre appareil est connecté, chaque message que vous envoyez est aussi envoyé comme recherche à Wikipédia en anglais. Les résultats sont ensuite comparés à votre question sur votre appareil. Avec la recherche sur le web activée, vos questions quittent donc votre appareil, à destination de Wikipédia. Désactivée, jamais.
+Si vous activez Customise ▸ Online web search et que votre appareil est connecté, les mots clés de chaque message que vous envoyez sont aussi envoyés comme recherche à Wikipédia en anglais : huit mots au plus, sans les mots courants comme « the » ou « what », les liens, les adresses e-mail et les longs nombres. Votre message entier n’est jamais envoyé. Les résultats sont ensuite comparés à votre question sur votre appareil. Avec la recherche sur le web activée, les mots clés de vos questions quittent donc votre appareil, à destination de Wikipédia. Désactivée, rien ne part.
 
 ## Les liens que vous ouvrez
 
@@ -167,7 +167,7 @@ L’application ne contacte pas le service Universal ID tant que vous ne vous ê
 
 ## Ce qui ne part jamais
 
-Vos conversations, vos réponses enregistrées et vos documents ne sont jamais envoyés en ligne, à une exception près : quand la recherche sur le web est activée, vos questions partent vers Wikipédia comme décrit ci-dessus.`,
+Vos conversations, vos réponses enregistrées et vos documents ne sont jamais envoyés en ligne, à une exception près : quand la recherche sur le web est activée, les mots clés de vos questions partent vers Wikipédia comme décrit ci-dessus.`,
   },
   {
     id: 'what-is-stored',

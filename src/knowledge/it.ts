@@ -155,7 +155,7 @@ Nessuna di queste richieste contiene i tuoi messaggi o i tuoi documenti.
 
 ## La ricerca sul web, disattivata di default
 
-Se attivi Customise ▸ Online web search e il dispositivo è connesso, ogni messaggio che invii viene mandato anche come ricerca a Wikipedia in inglese. I risultati vengono poi confrontati con la tua domanda sul tuo dispositivo. Quindi, con la ricerca sul web attiva, le tue domande lasciano il dispositivo, dirette a Wikipedia. Con la ricerca disattivata, mai.
+Se attivi Customise ▸ Online web search e il dispositivo è connesso, le parole chiave di ogni messaggio che invii vengono mandate anche come ricerca a Wikipedia in inglese: al massimo otto parole, senza parole comuni come "the" o "what", link, indirizzi email e numeri lunghi. Il messaggio intero non viene mai inviato. I risultati vengono poi confrontati con la tua domanda sul tuo dispositivo. Quindi, con la ricerca sul web attiva, le parole chiave delle tue domande lasciano il dispositivo, dirette a Wikipedia. Con la ricerca disattivata, non parte nulla.
 
 ## I link che apri
 
@@ -167,7 +167,7 @@ L’app non contatta il servizio Universal ID finché non accedi dalla scheda Cu
 
 ## Che cosa non esce mai
 
-Le tue chat, le risposte salvate e i documenti non vengono mai caricati online, con un’eccezione: quando la ricerca sul web è attiva, le tue domande vanno a Wikipedia come descritto sopra.`,
+Le tue chat, le risposte salvate e i documenti non vengono mai caricati online, con un’eccezione: quando la ricerca sul web è attiva, le parole chiave delle tue domande vanno a Wikipedia come descritto sopra.`,
   },
   {
     id: 'what-is-stored',

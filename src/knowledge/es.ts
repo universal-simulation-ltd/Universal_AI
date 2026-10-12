@@ -155,7 +155,7 @@ Ninguna de estas peticiones contiene sus mensajes ni sus documentos.
 
 ## Búsqueda en la web, desactivada por defecto
 
-Si activa Customise ▸ Online web search y su dispositivo tiene conexión, cada mensaje que envía se manda también como búsqueda a la Wikipedia en inglés. Después, los resultados se comparan con su pregunta en su dispositivo. Por tanto, con la búsqueda en la web activada, sus preguntas sí salen de su dispositivo, hacia Wikipedia. Con ella desactivada, nunca.
+Si activa Customise ▸ Online web search y su dispositivo tiene conexión, las palabras clave de cada mensaje que envía se mandan también como búsqueda a la Wikipedia en inglés: ocho palabras como máximo, sin palabras comunes como «the» o «what», enlaces, direcciones de correo ni números largos. Su mensaje completo nunca se envía. Después, los resultados se comparan con su pregunta en su dispositivo. Por tanto, con la búsqueda en la web activada, las palabras clave de sus preguntas sí salen de su dispositivo, hacia Wikipedia. Con ella desactivada, no sale nada.
 
 ## Enlaces que abre
 
@@ -167,7 +167,7 @@ La aplicación no contacta con el servicio Universal ID hasta que usted inicia s
 
 ## Lo que nunca sale
 
-Sus conversaciones, sus respuestas guardadas y sus documentos nunca se suben, con una excepción: cuando la búsqueda en la web está activada, sus preguntas van a Wikipedia como se ha descrito.`,
+Sus conversaciones, sus respuestas guardadas y sus documentos nunca se suben, con una excepción: cuando la búsqueda en la web está activada, las palabras clave de sus preguntas van a Wikipedia como se ha descrito.`,
   },
   {
     id: 'what-is-stored',

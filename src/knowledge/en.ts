@@ -153,7 +153,7 @@ None of these requests contain your messages or documents.
 
 ## Web search, off by default
 
-If you switch on Customise ▸ Online web search and your device is online, each message you send is also sent as a search to English Wikipedia. The results are then compared with your question on your device. So, with web search on, your questions do leave your device, to Wikipedia. With it off, they never do.
+If you switch on Customise ▸ Online web search and your device is online, the key words of each message you send are also sent as a search to English Wikipedia: at most eight words, with common words such as "the" or "what", links, email addresses and long numbers left out. Your whole message is never sent. The results are then compared with your question on your device. So, with web search on, the key words of your questions do leave your device, to Wikipedia. With it off, nothing does.
 
 ## Links you open
 
@@ -165,7 +165,7 @@ The app makes no calls to the Universal ID service until you log in on the Custo
 
 ## What never leaves
 
-Your chats, saved answers and documents are never uploaded, with one exception: when web search is on, your questions go to Wikipedia as described above.`,
+Your chats, saved answers and documents are never uploaded, with one exception: when web search is on, the key words of your questions go to Wikipedia as described above.`,
   },
   {
     id: 'what-is-stored',

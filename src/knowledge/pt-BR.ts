@@ -155,7 +155,7 @@ Nenhuma dessas solicitações contém as suas mensagens ou os seus documentos.
 
 ## Pesquisa na web, desligada por padrão
 
-Se você ativar Customise ▸ Online web search e o dispositivo estiver online, cada mensagem enviada também vai como pesquisa para a Wikipédia em inglês. Os resultados são então comparados com a sua pergunta no seu dispositivo. Ou seja, com a pesquisa na web ligada, as suas perguntas saem do seu dispositivo, rumo à Wikipédia. Com ela desligada, nunca.
+Se você ativar Customise ▸ Online web search e o dispositivo estiver online, as palavras-chave de cada mensagem enviada também vão como pesquisa para a Wikipédia em inglês: no máximo oito palavras, sem palavras comuns como "the" ou "what", links, endereços de e-mail e números longos. A mensagem inteira nunca é enviada. Os resultados são então comparados com a sua pergunta no seu dispositivo. Ou seja, com a pesquisa na web ligada, as palavras-chave das suas perguntas saem do seu dispositivo, rumo à Wikipédia. Com ela desligada, nada sai.
 
 ## Links que você abre
 
@@ -167,7 +167,7 @@ O app não entra em contato com o serviço Universal ID até você fazer login n
 
 ## O que nunca sai
 
-As suas conversas, respostas salvas e documentos nunca são enviados, com uma exceção: quando a pesquisa na web está ligada, as suas perguntas vão para a Wikipédia, como descrito acima.`,
+As suas conversas, respostas salvas e documentos nunca são enviados, com uma exceção: quando a pesquisa na web está ligada, as palavras-chave das suas perguntas vão para a Wikipédia, como descrito acima.`,
   },
   {
     id: 'what-is-stored',
